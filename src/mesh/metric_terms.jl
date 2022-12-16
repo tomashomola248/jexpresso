@@ -49,16 +49,23 @@ function build_metric_terms(SD::NSD_2D, mesh::St_mesh, basis::St_Lagrange, N, Q,
             for k = 1:Q+1
                 for j = 1:N+1
                     for i = 1:N+1
-                        #ip = connijk[i,j,iel] 
-                        #xij = mesh.x[ip]
-                        xij = 1.0
+                        ip = connijk[i,j,iel] 
+                        xij = mesh.x[ip]
+                        #xij = 1.0
                         metrics.dxdξ[1, k, l, iel] = metrics.dxdξ[1, k, l, iel] + dψ[i,k]*ψ[j,l]*xij
+                        metrics.dxdη[1, k, l, iel] = metrics.dxdξ[1, k, l, iel] + dψ[j,l]*ψ[i,k]*xij
+                        metrics.dydξ[1, k, l, iel] = metrics.dxdξ[1, k, l, iel] + dψ[i,k]*ψ[j,l]*yij
+                        metrics.dydη[1, k, l, iel] = metrics.dxdξ[1, k, l, iel] + dψ[j,l]*ψ[i,k]*yij
                     end
                 end
             end
         end
-    end
-    
+        for l=1:Q+1
+           for k=1:Q+1
+              metrics.J[1,k,l,iel] = metrics.dxdξ[1, k, l, iel]*metrics.dydη[1, k, l, iel] -  metrics.dydξ[1, k, l, iel]*metrics.dxdη[1, k, l, iel]
+            end 
+         end
+      end
     return metrics
 end
 
