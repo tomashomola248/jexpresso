@@ -213,6 +213,8 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     mesh.nedges_bdy   = count(get_isboundary_face(topology,mesh.nsd-2))
     mesh.nedges_int   = mesh.nedges - mesh.nedges_bdy
     
+    get_isboundary_face(topology,mesh.nsd-1)
+   
     println(" # GMSH LINEAR GRID PROPERTIES")
     println(" # N. elements       : ", mesh.nelem)
     println(" # N. points         : ", mesh.npoin_linear)
@@ -268,10 +270,15 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     mesh.cell_node_ids     = model.grid.cell_node_ids
     mesh.conn_unique_faces = get_face_nodes(model, FACE_flg) #faces --> 4 nodes
     mesh.conn_unique_edges = get_face_nodes(model, EDGE_flg) #edges --> 2 nodes
-
+    
     mesh.cell_edge_ids     = get_faces(topology, mesh.nsd, 1) #edge map from local to global numbering i.e. iedge_g = cell_edge_ids[1:NELEM][1:NEDGES_EL]
 mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
-
+    
+    @info compute_isboundary_face(topology, mesh.nsd-1)
+    
+    error("saasasas")
+    
+    
 if (mesh.nsd == 1)
     nothing
 elseif (mesh.nsd == 2)
