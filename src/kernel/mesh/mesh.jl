@@ -207,7 +207,8 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     mesh.nfaces       = num_faces(model,FACE_flg)   
     mesh.nelem        = num_faces(model,ELEM_flg)
 
-    
+
+    mesh.nvolum_bdy   = count(get_isboundary_face(topology,mesh.nsd))
     mesh.nfaces_bdy   = count(get_isboundary_face(topology,mesh.nsd-1))
     mesh.nfaces_int   = mesh.nfaces - mesh.nfaces_bdy
     mesh.nedges_bdy   = count(get_isboundary_face(topology,mesh.nsd-2))
@@ -224,6 +225,7 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     println(" # N. faces          : ", mesh.nfaces) 
     println(" # N. internal faces : ", mesh.nfaces_int)
     println(" # N. boundary faces : ", mesh.nfaces_bdy)
+    println(" # N. boundary elem  : ", mesh.nvolum_bdy)
     println(" # GMSH LINEAR GRID PROPERTIES ...................... END")
     
     ngl                     = mesh.nop + 1
@@ -278,6 +280,7 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     # Extract boundary edge nodes: 
     #
     isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
+    isboundary_face = compute_isboundary_face(topology, mesh.nsd-2)
     bdy_edge = zeros(Int64, length(findall(!iszero,isboundary_edge)), 2)
     ibdy_edge = 1
     for i=1:length(mesh.conn_unique_edges)
