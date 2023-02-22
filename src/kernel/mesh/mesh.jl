@@ -272,11 +272,24 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     mesh.conn_unique_edges = get_face_nodes(model, EDGE_flg) #edges --> 2 nodes
     
     mesh.cell_edge_ids     = get_faces(topology, mesh.nsd, 1) #edge map from local to global numbering i.e. iedge_g = cell_edge_ids[1:NELEM][1:NEDGES_EL]
-mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
-    
-    @info compute_isboundary_face(topology, mesh.nsd-1)
-    
-    error("saasasas")
+    mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
+
+    #
+    # Extract boundary edge nodes: 
+    #
+    isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
+    bdy_edge = zeros(Int64, length(findall(!iszero,isboundary_edge)), 2)
+    ibdy_edge = 1
+    for i=1:length(mesh.conn_unique_edges)
+        if isboundary_edge[i] == 1
+            bdy_edge[ibdy_edge,1] =  mesh.conn_unique_edges[i][1]
+            bdy_edge[ibdy_edge,2] =  mesh.conn_unique_edges[i][2]
+            @info ibdy_edge, bdy_edge[ibdy_edge,1], bdy_edge[ibdy_edge,2]
+            ibdy_edge += 1 
+        end
+        #@info mesh.conn_unique_faces[i,1] mesh.conn_unique_faces[i,2]
+    end
+    error(" mesh.jl err")
     
     
 if (mesh.nsd == 1)
