@@ -3,20 +3,20 @@ function user_inputs()
         #---------------------------------------------------------------------------
         # User define your inputs below: the order doesn't matter
         #---------------------------------------------------------------------------
-        :tend                => 1.5,
+        :tend                => 0.5,
         :Δt                  => 5e-4,
         :diagnostics_interval=> 100, #these are steps, not seconds
         #---------------------------------------------------------------------------
         #Integration and quadrature properties
         #---------------------------------------------------------------------------
-        :interpolation_nodes => "cg", # Choice: "lgl", "cg", "cgl"
+        :interpolation_nodes => "lgl", # Choice: "lgl", "cg", "cgl"
         :nop                 => 6,     # Polynomial order
         :lexact_integration  => false,
         #---------------------------------------------------------------------------
         # Physical parameters/constants:
         #---------------------------------------------------------------------------
-        :νx                   => 0.01, #kinematic viscosity constant
-        :νy                   => 0.01, #kinematic viscosity constant
+        #:νx                   => 0.01, #kinematic viscosity constant
+        #:νy                   => 0.01, #kinematic viscosity constant
         #---------------------------------------------------------------------------
         # Mesh paramters and files:
         #---------------------------------------------------------------------------
