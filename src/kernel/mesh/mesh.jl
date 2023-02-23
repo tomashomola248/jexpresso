@@ -207,12 +207,15 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     mesh.nfaces       = num_faces(model,FACE_flg)   
     mesh.nelem        = num_faces(model,ELEM_flg)
 
-    
+
+    mesh.nvolum_bdy   = count(get_isboundary_face(topology,mesh.nsd))
     mesh.nfaces_bdy   = count(get_isboundary_face(topology,mesh.nsd-1))
     mesh.nfaces_int   = mesh.nfaces - mesh.nfaces_bdy
     mesh.nedges_bdy   = count(get_isboundary_face(topology,mesh.nsd-2))
     mesh.nedges_int   = mesh.nedges - mesh.nedges_bdy
     
+    get_isboundary_face(topology,mesh.nsd-1)
+   
     println(" # GMSH LINEAR GRID PROPERTIES")
     println(" # N. elements       : ", mesh.nelem)
     println(" # N. points         : ", mesh.npoin_linear)
@@ -222,6 +225,7 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     println(" # N. faces          : ", mesh.nfaces) 
     println(" # N. internal faces : ", mesh.nfaces_int)
     println(" # N. boundary faces : ", mesh.nfaces_bdy)
+    println(" # N. boundary elem  : ", mesh.nvolum_bdy)
     println(" # GMSH LINEAR GRID PROPERTIES ...................... END")
     
     ngl                     = mesh.nop + 1
@@ -268,10 +272,29 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     mesh.cell_node_ids     = model.grid.cell_node_ids
     mesh.conn_unique_faces = get_face_nodes(model, FACE_flg) #faces --> 4 nodes
     mesh.conn_unique_edges = get_face_nodes(model, EDGE_flg) #edges --> 2 nodes
-
+    
     mesh.cell_edge_ids     = get_faces(topology, mesh.nsd, 1) #edge map from local to global numbering i.e. iedge_g = cell_edge_ids[1:NELEM][1:NEDGES_EL]
-mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
+    mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
 
+    #
+    # Extract boundary edge nodes: 
+    #
+    isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
+    isboundary_face = compute_isboundary_face(topology, mesh.nsd-2)
+    bdy_edge = zeros(Int64, length(findall(!iszero,isboundary_edge)), 2)
+    ibdy_edge = 1
+    for i=1:length(mesh.conn_unique_edges)
+        if isboundary_edge[i] == 1
+            bdy_edge[ibdy_edge,1] =  mesh.conn_unique_edges[i][1]
+            bdy_edge[ibdy_edge,2] =  mesh.conn_unique_edges[i][2]
+            @info ibdy_edge, bdy_edge[ibdy_edge,1], bdy_edge[ibdy_edge,2]
+            ibdy_edge += 1 
+        end
+        #@info mesh.conn_unique_faces[i,1] mesh.conn_unique_faces[i,2]
+    end
+    error(" mesh.jl err")
+    
+    
 if (mesh.nsd == 1)
     nothing
 elseif (mesh.nsd == 2)
