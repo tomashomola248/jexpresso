@@ -14,8 +14,8 @@ function initialize(ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT_DIR::String
     q = St_SolutionVars{TFloat}(zeros(1, 1),                     # qn+1
                                 zeros(mesh.npoin, 3),            # qn
                                 zeros(mesh.npoin, 3),            # qn-1
-                                zeros(1, 1),                     # qn-2
-                                zeros(1, 1),                     # qn-3
+                                zeros(mesh.npoin, 3),            # qn-2
+                                zeros(mesh.npoin, 3),            # qn-3
                                 zeros(mesh.npoin, 3),            # qe
                                 zeros(1, 1, 1, 1),               # qnelⁿ
                                 zeros(1, 1, 1, 1),               # Fⁿ⁺¹

@@ -114,7 +114,7 @@ function driver(DT::ContGal,       #Space discretization type
     # M[1:N+1, 1:N+1, 1:N+1, 1:N+1, 1:nelem]
     #--------------------------------------------------------    
     Me = build_mass_matrix!(SD, TensorProduct(), basis.ψ, ω, mesh, metrics, Nξ, Qξ, TFloat)
-    M = DSSijk_mass(SD, QT, Me, mesh.connijk, mesh.nelem, mesh.npoin, Nξ, TFloat)
+    M  = DSSijk_mass(SD, QT, Me, mesh.connijk, mesh.nelem, mesh.npoin, Nξ, TFloat)
     
     #--------------------------------------------------------
     # Initialize q
