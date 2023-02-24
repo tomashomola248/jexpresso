@@ -449,15 +449,21 @@ end
 #----------------------------------------------------------------------
 isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
 isboundary_face = compute_isboundary_face(topology, mesh.nsd-2)
-bdy_edge = zeros(Int64, length(findall(!iszero,isboundary_edge)), mesh.ngl)
-bdy_face = zeros(Int64, length(findall(!iszero,isboundary_face)), mesh.ngl*mesh.ngl)
+
+bdy_edge_in_elem = zeros(Int64, length(findall(!iszero,isboundary_edge)), mesh.ngl)
+#
+@info mesh.nedges_bdy length(findall(!iszero,isboundary_edge))
+poin_in_bdy_edge = zeros(Int64, nedges_bdy, mesh.ngl)
+bdy_edge_in_elem = zeros(Int64, nedges_bdy, mesh.nelem)
+#
+bdy_face = zeros(Int64, nfaces_bdy), mesh.ngl*mesh.ngl)
 ibdy_edge = ibdy_face = 1
 
-for i = 1:length(mesh.conn_edge_poin[:,1])
+for i = 1:mesh.nedges #nedges
     if isboundary_edge[i] == 1
         for igl = 1:mesh.ngl
-            bdy_edge[ibdy_edge,igl] = mesh.conn_edge_poin[i,igl]
-            #@printf " %d, %d %d " ibdy_edge igl bdy_edge[ibdy_edge,igl] #OK
+            poin_in_bdy_edge[ibdy_edge, igl] = mesh.conn_edge_poin[i,igl]
+            #@printf " %d, %d %d " ibdy_edge igl bdy_edge_in_elem[ibdy_edge,igl, 1] #OK
         end
         #@printf "\n"
         ibdy_edge += 1
@@ -465,25 +471,28 @@ for i = 1:length(mesh.conn_edge_poin[:,1])
 end
 for iel = 1:mesh.nelem
 
-    for ibdy_edge = 1:size(bdy_edge, 1)
-        if issubset(bdy_edge[ibdy_edge, :], mesh.connijk[:, :, iel])
+    for ibdy_edge = 1:nedges_bdy
+        if issubset(bdy_edge_in_elem[ibdy_edge, :], mesh.connijk[:, :, iel])
             @printf(" bdy_edge %d ∈ eleme %d \n", ibdy_edge, iel)
 
-            for i = 1:mesh.ngl
-                @printf(" %d ", bdy_edge[ibdy_edge, i])
-                #for j = 1:mesh.ngl
-                #    @printf(" %d ", mesh.connijk[i, j, iel])
-                #end
-            end
-            @printf "\n\n"
+            #for i = 1:mesh.ngl
+                bdy_edge_in_elem[ibdy_edge, :] = iel
+                
+                #@printf(" ibdy_edge %d  ", bdy_edge_in_elem[ibdy_edge, i])
+                #@printf(" %d ", bdy_edge_in_elem[ibdy_edge, i])
+            #end
+            #@printf "\n\n"
         end
     end
-    #for i = 1:mesh.ngl
-    #    for j = 1:mesh.ngl
-    #        ip = mesh.connijk[i, j, iel]
-    #            #    end
-    #end
 end
+
+for ibdy_edge = 1:size(bdy_edge, 1)    
+    for i = 1:mesh.ngl
+        @printf(" (node %d ∈ bdy_edge %d) ∈ eleme %d \n", i, ibdy_edge, bdy_edge_in_elem[ibdy_edge, i])
+    end
+end
+
+
 
 #=
 for i=1:length(mesh.conn_unique_faces)
