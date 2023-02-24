@@ -474,15 +474,14 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
         end
     end
 
-    for iedge_bdy = 1:mesh.nedges_bdy
+    #=for iedge_bdy = 1:mesh.nedges_bdy
         @printf(" bdy_edge %d ∈ elem %d and has points\n", iedge_bdy, bdy_edge_in_elem[iedge_bdy])
         for igl = 1:mesh.ngl
             @printf(" %d", poin_in_bdy_edge[iedge_bdy, igl])
         end
         @printf("\n\n")
-    end
-    error("hjkjkkljjkl")
-
+    end=#
+    
 
     #=
     for i=1:length(mesh.conn_unique_faces)
@@ -496,19 +495,8 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     end 
     end=#
 
-
-    for ie=1:mesh.nelem
-        
-        nothing
-    end
-    error(" ERROR mesh.jl err")
-    
     #compute_element_size_driver(mesh, SD, TFloat)
     #error("assasasa")
-
-
-
-
     #---------------------------------------------------------------------------------
     # YT Determine boundary nodes and assign node numbers to appropriate array
     #---------------------------------------------------------------------------------
