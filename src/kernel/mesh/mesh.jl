@@ -73,7 +73,7 @@ Base.@kwdef mutable struct St_mesh{TInt, TFloat}
     nedges::Union{TInt, Missing} = 1       # total number of edges
     nedges_bdy::Union{TInt, Missing} = 1   # bdy edges
     nedges_int::Union{TInt, Missing} = 1   # internal edges
-        
+    
     nfaces::Union{TInt, Missing} = 1       # total number of faces
     nfaces_bdy::Union{TInt, Missing} = 1   # bdy faces
     nfaces_int::Union{TInt, Missing} = 1   # internal faces
@@ -132,7 +132,7 @@ Base.@kwdef mutable struct St_mesh{TInt, TFloat}
     ymin_facetoelem = Array{Int64}(undef, 0)
     zmin_facetoelem = Array{Int64}(undef, 0)
     
- 
+    
 end
 
 function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
@@ -272,471 +272,461 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     #
     mesh.cell_node_ids     = model.grid.cell_node_ids
     mesh.conn_unique_faces = get_face_nodes(model, FACE_flg) #faces --> 4 nodes
-mesh.conn_unique_edges = get_face_nodes(model, EDGE_flg) #edges --> 2 nodes
+    mesh.conn_unique_edges = get_face_nodes(model, EDGE_flg) #edges --> 2 nodes
 
-mesh.cell_edge_ids     = get_faces(topology, mesh.nsd, 1) #edge map from local to global numbering i.e. iedge_g = cell_edge_ids[1:NELEM][1:NEDGES_EL]
-mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
+    mesh.cell_edge_ids     = get_faces(topology, mesh.nsd, 1) #edge map from local to global numbering i.e. iedge_g = cell_edge_ids[1:NELEM][1:NEDGES_EL]
+    mesh.cell_face_ids     = get_faces(topology, mesh.nsd, mesh.nsd-1) #face map from local to global numbering i.e. iface_g = cell_face_ids[1:NELEM][1:NFACE_EL]
 
-if (mesh.nsd == 1)
-    nothing
-elseif (mesh.nsd == 2)
-    
-    mesh.connijk = Array{Int64}(undef, mesh.ngl, mesh.ngl, mesh.nelem)
-    for iel = 1:mesh.nelem
-        mesh.conn[1, iel] = mesh.cell_node_ids[iel][1]
-        mesh.conn[2, iel] = mesh.cell_node_ids[iel][2]
-        mesh.conn[3, iel] = mesh.cell_node_ids[iel][4]
-        mesh.conn[4, iel] = mesh.cell_node_ids[iel][3]
-
-        #
-        # 3-----4
-        # |     |
-        # |     |
-        # 1-----2
-        #
-        mesh.connijk[1,  1, iel]     = mesh.cell_node_ids[iel][2]
-        mesh.connijk[1,    ngl, iel] = mesh.cell_node_ids[iel][1]
-        mesh.connijk[ngl,  ngl, iel] = mesh.cell_node_ids[iel][3]
-        mesh.connijk[ngl,1, iel]     = mesh.cell_node_ids[iel][4]
+    if (mesh.nsd == 1)
+        nothing
+    elseif (mesh.nsd == 2)
         
-        #=
-        # 4-----3
-        # |     |
-        # |     |
-        # 1-----2
-        #
-        mesh.connijk[1,  1, iel]     = mesh.cell_node_ids[iel][1]
-        mesh.connijk[1,    ngl, iel] = mesh.cell_node_ids[iel][2]
-        mesh.connijk[ngl,  ngl, iel] = mesh.cell_node_ids[iel][4]
-        mesh.connijk[ngl,1, iel]     = mesh.cell_node_ids[iel][3]
-        =#
-        
-        #@printf(" [1,1] [ngl, 1] [1, ngl] [ngl, ngl] %d %d %d %d\n", mesh.connijk[1,  1, iel], mesh.connijk[ngl, 1, iel] , mesh.connijk[1,ngl, iel], mesh.connijk[ngl, ngl, iel] )
-        
-    end
-    #
-    # Fill in elements dictionary needed by NodeOrdering.jl
-    #
-    elements = Dict(
-        kk => mesh.conn[1:4, kk]
-        for kk = 1:mesh.nelem)
-    element_types = Dict(
-        kk => :Quad4
-        for kk = 1:mesh.nelem)
+        mesh.connijk = Array{Int64}(undef, mesh.ngl, mesh.ngl, mesh.nelem)
+        for iel = 1:mesh.nelem
+            mesh.conn[1, iel] = mesh.cell_node_ids[iel][1]
+            mesh.conn[2, iel] = mesh.cell_node_ids[iel][2]
+            mesh.conn[3, iel] = mesh.cell_node_ids[iel][4]
+            mesh.conn[4, iel] = mesh.cell_node_ids[iel][3]
 
-    #if (rcm_renumber)
-    #
-    #Use NodeNumbering.jl
-    #
-    #adjacency = create_adjacency_graph(elements, element_types)
-    #degrees = node_degrees(adjacency)
-    #neworder = RCM(adjacency, degrees, tot_linear_poin, tot_linear_poin)
-    #finalorder = renumbering(neworder)
-    #RCM_adjacency = create_RCM_adjacency(adjacency, finalorder)
-    #newmatrix = adjacency_visualization(RCM_adjacency)
-    #display(UnicodePlots.heatmap(newmatrix))
-    
-    #
-    # Rewrite coordinates in RCM order:
-    #
-    open("./COORDS_LO.dat", "w") do f
-        for ip = 1:mesh.npoin_linear
+            #
+            # 3-----4
+            # |     |
+            # |     |
+            # 1-----2
+            #
+            mesh.connijk[1,  1, iel]     = mesh.cell_node_ids[iel][2]
+            mesh.connijk[1,    ngl, iel] = mesh.cell_node_ids[iel][1]
+            mesh.connijk[ngl,  ngl, iel] = mesh.cell_node_ids[iel][3]
+            mesh.connijk[ngl,1, iel]     = mesh.cell_node_ids[iel][4]
             
-            mesh.x[ip] = model.grid.node_coordinates[ip][1]
-            mesh.y[ip] = model.grid.node_coordinates[ip][2]
+            #=
+            # 4-----3
+            # |     |
+            # |     |
+            # 1-----2
+            #
+            mesh.connijk[1,  1, iel]     = mesh.cell_node_ids[iel][1]
+            mesh.connijk[1,    ngl, iel] = mesh.cell_node_ids[iel][2]
+            mesh.connijk[ngl,  ngl, iel] = mesh.cell_node_ids[iel][4]
+            mesh.connijk[ngl,1, iel]     = mesh.cell_node_ids[iel][3]
+            =#
             
-            @printf(f, " %.6f %.6f 0.000000 %d\n", mesh.x[ip],  mesh.y[ip], ip)
+            #@printf(" [1,1] [ngl, 1] [1, ngl] [ngl, ngl] %d %d %d %d\n", mesh.connijk[1,  1, iel], mesh.connijk[ngl, 1, iel] , mesh.connijk[1,ngl, iel], mesh.connijk[ngl, ngl, iel] )
+            
         end
-    end #f
-    
-elseif (mesh.nsd == 3)
-    mesh.connijk = Array{Int64}(undef, mesh.ngl, mesh.ngl, mesh.ngl, mesh.nelem)
-    for iel = 1:mesh.nelem
-        #CGNS numbering:
-        mesh.conn[1, iel] = mesh.cell_node_ids[iel][2] #9
-        mesh.conn[2, iel] = mesh.cell_node_ids[iel][6] #11
-        mesh.conn[3, iel] = mesh.cell_node_ids[iel][8] #5
-        mesh.conn[4, iel] = mesh.cell_node_ids[iel][4] #1
-        mesh.conn[5, iel] = mesh.cell_node_ids[iel][1] #10
-        mesh.conn[6, iel] = mesh.cell_node_ids[iel][5] #12
-        mesh.conn[7, iel] = mesh.cell_node_ids[iel][7] #8
-        mesh.conn[8, iel] = mesh.cell_node_ids[iel][3] #4
-        mesh.connijk[1,1,1,iel] = mesh.cell_node_ids[iel][2] #9 
-        mesh.connijk[1,ngl,1,iel] = mesh.cell_node_ids[iel][4] #1
-        mesh.connijk[1,1,ngl,iel] = mesh.cell_node_ids[iel][1] #10
-        mesh.connijk[ngl,1,1,iel] = mesh.cell_node_ids[iel][6] #11
-        mesh.connijk[ngl,ngl,1,iel] = mesh.cell_node_ids[iel][8] #5
-        mesh.connijk[1,ngl,ngl,iel] =  mesh.cell_node_ids[iel][3] #4
-        mesh.connijk[ngl,1,ngl,iel] = mesh.cell_node_ids[iel][5] #12
-        mesh.connijk[ngl,ngl,ngl,iel] = mesh.cell_node_ids[iel][7] #8
-    end
-    #
-    # Fill in elements dictionary needed by NodeOrdering.jl
-    #
-    elements = Dict(
-        kk => mesh.conn[1:8, kk]
-        for kk = 1:mesh.nelem)
-    element_types = Dict(
-        kk => :Hexa8
-        for kk = 1:mesh.nelem)
-    
-    #
-    #Use NodeNumbering.jl
-    #
-    #adjacency = create_adjacency_graph(elements, element_types)
-    #degrees = node_degrees(adjacency)
-    #neworder = RCM(adjacency, degrees, tot_linear_poin, tot_linear_poin)
-    #finalorder = renumbering(neworder)
-    #RCM_adjacency = create_RCM_adjacency(adjacency, finalorder)
-    #newmatrix = adjacency_visualization(RCM_adjacency)
-    #display(UnicodePlots.heatmap(newmatrix))
-    
-    
-    #
-    # Rewrite coordinates in RCM order:
-    #
-    open("./COORDS_LO.dat", "w") do f
-        for ip = 1:mesh.npoin_linear
-            mesh.x[ip] = model.grid.node_coordinates[ip][1]
-            mesh.y[ip] = model.grid.node_coordinates[ip][2]
-            mesh.z[ip] = model.grid.node_coordinates[ip][3]
-            @printf(f, " %.6f %.6f %.6f %d\n", mesh.x[ip],  mesh.y[ip], mesh.z[ip], ip)
-        end
-    end #f
-end
+        #
+        # Fill in elements dictionary needed by NodeOrdering.jl
+        #
+        elements = Dict(
+            kk => mesh.conn[1:4, kk]
+            for kk = 1:mesh.nelem)
+        element_types = Dict(
+            kk => :Quad4
+            for kk = 1:mesh.nelem)
 
-
-
-
-#
-# Add high-order points to edges, faces, and elements (volumes)
-#
-# initialize LGL struct and buyild Gauss-Lobatto-xxx points
-lgl = basis_structs_ξ_ω!(inputs[:interpolation_nodes], mesh.nop)
-
-println(" # POPULATE GRID with SPECTRAL NODES ............................ ")
-#
-# Edges
-#
-populate_conn_edge_el!(mesh, SD)
-@time add_high_order_nodes_edges!(mesh, lgl, SD)
-
-#
-# Faces
-#
-populate_conn_face_el!(mesh, SD)
-@time add_high_order_nodes_faces!(mesh, lgl, SD)
-
-#
-# Volume
-#
-# NOTICE: in 2D we consider only edges and 2D faces
-#         
-@time add_high_order_nodes_volumes!(mesh, lgl, SD)
-
-for ip = mesh.npoin_linear+1:mesh.npoin
-    mesh.x[ip] = mesh.x_ho[ip]
-    mesh.y[ip] = mesh.y_ho[ip]
-    mesh.z[ip] = 0.0
-    if (mesh.nsd > 2)
-        mesh.z[ip] = mesh.z_ho[ip]
-    end
-end
-
-
-#----------------------------------------------------------------------
-# Extract boundary edge nodes:
-#----------------------------------------------------------------------
-isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
-isboundary_face = compute_isboundary_face(topology, mesh.nsd-2)
-
-bdy_edge_in_elem = zeros(Int64, length(findall(!iszero,isboundary_edge)), mesh.ngl)
-#
-@info mesh.nedges_bdy length(findall(!iszero,isboundary_edge))
-poin_in_bdy_edge = zeros(Int64, nedges_bdy, mesh.ngl)
-bdy_edge_in_elem = zeros(Int64, nedges_bdy, mesh.nelem)
-#
-bdy_face = zeros(Int64, nfaces_bdy), mesh.ngl*mesh.ngl)
-ibdy_edge = ibdy_face = 1
-
-for i = 1:mesh.nedges #nedges
-    if isboundary_edge[i] == 1
-        for igl = 1:mesh.ngl
-            poin_in_bdy_edge[ibdy_edge, igl] = mesh.conn_edge_poin[i,igl]
-            #@printf " %d, %d %d " ibdy_edge igl bdy_edge_in_elem[ibdy_edge,igl, 1] #OK
-        end
-        #@printf "\n"
-        ibdy_edge += 1
-    end
-end
-for iel = 1:mesh.nelem
-
-    for ibdy_edge = 1:nedges_bdy
-        if issubset(bdy_edge_in_elem[ibdy_edge, :], mesh.connijk[:, :, iel])
-            @printf(" bdy_edge %d ∈ eleme %d \n", ibdy_edge, iel)
-
-            #for i = 1:mesh.ngl
-                bdy_edge_in_elem[ibdy_edge, :] = iel
+        #if (rcm_renumber)
+        #
+        #Use NodeNumbering.jl
+        #
+        #adjacency = create_adjacency_graph(elements, element_types)
+        #degrees = node_degrees(adjacency)
+        #neworder = RCM(adjacency, degrees, tot_linear_poin, tot_linear_poin)
+        #finalorder = renumbering(neworder)
+        #RCM_adjacency = create_RCM_adjacency(adjacency, finalorder)
+        #newmatrix = adjacency_visualization(RCM_adjacency)
+        #display(UnicodePlots.heatmap(newmatrix))
+        
+        #
+        # Rewrite coordinates in RCM order:
+        #
+        open("./COORDS_LO.dat", "w") do f
+            for ip = 1:mesh.npoin_linear
                 
-                #@printf(" ibdy_edge %d  ", bdy_edge_in_elem[ibdy_edge, i])
-                #@printf(" %d ", bdy_edge_in_elem[ibdy_edge, i])
-            #end
-            #@printf "\n\n"
-        end
-    end
-end
-
-for ibdy_edge = 1:size(bdy_edge, 1)    
-    for i = 1:mesh.ngl
-        @printf(" (node %d ∈ bdy_edge %d) ∈ eleme %d \n", i, ibdy_edge, bdy_edge_in_elem[ibdy_edge, i])
-    end
-end
-
-
-
-#=
-for i=1:length(mesh.conn_unique_faces)
-    if isboundary_face[i] == 1
-        bdy_face[ibdy_face,1] = mesh.conn_unique_faces[i][1]
-        bdy_face[ibdy_face,2] = mesh.conn_unique_faces[i][2]
-        bdy_face[ibdy_face,3] = mesh.conn_unique_faces[i][3]
-        bdy_face[ibdy_face,4] = mesh.conn_unique_faces[i][4]
-        @info ibdy_face, bdy_face[ibdy_face,1], bdy_face[ibdy_face,2], bdy_face[ibdy_face,3], bdy_face[ibdy_face,4]
-        ibdy_face += 1
-    end 
-end=#
-
-
-for ie=1:mesh.nelem
-    
-   nothing
-end
-error(" ERROR mesh.jl err")
+                mesh.x[ip] = model.grid.node_coordinates[ip][1]
+                mesh.y[ip] = model.grid.node_coordinates[ip][2]
+                
+                @printf(f, " %.6f %.6f 0.000000 %d\n", mesh.x[ip],  mesh.y[ip], ip)
+            end
+        end #f
         
-#compute_element_size_driver(mesh, SD, TFloat)
-#error("assasasa")
+    elseif (mesh.nsd == 3)
+        mesh.connijk = Array{Int64}(undef, mesh.ngl, mesh.ngl, mesh.ngl, mesh.nelem)
+        for iel = 1:mesh.nelem
+            #CGNS numbering:
+            mesh.conn[1, iel] = mesh.cell_node_ids[iel][2] #9
+            mesh.conn[2, iel] = mesh.cell_node_ids[iel][6] #11
+            mesh.conn[3, iel] = mesh.cell_node_ids[iel][8] #5
+            mesh.conn[4, iel] = mesh.cell_node_ids[iel][4] #1
+            mesh.conn[5, iel] = mesh.cell_node_ids[iel][1] #10
+            mesh.conn[6, iel] = mesh.cell_node_ids[iel][5] #12
+            mesh.conn[7, iel] = mesh.cell_node_ids[iel][7] #8
+            mesh.conn[8, iel] = mesh.cell_node_ids[iel][3] #4
+            mesh.connijk[1,1,1,iel] = mesh.cell_node_ids[iel][2] #9 
+            mesh.connijk[1,ngl,1,iel] = mesh.cell_node_ids[iel][4] #1
+            mesh.connijk[1,1,ngl,iel] = mesh.cell_node_ids[iel][1] #10
+            mesh.connijk[ngl,1,1,iel] = mesh.cell_node_ids[iel][6] #11
+            mesh.connijk[ngl,ngl,1,iel] = mesh.cell_node_ids[iel][8] #5
+            mesh.connijk[1,ngl,ngl,iel] =  mesh.cell_node_ids[iel][3] #4
+            mesh.connijk[ngl,1,ngl,iel] = mesh.cell_node_ids[iel][5] #12
+            mesh.connijk[ngl,ngl,ngl,iel] = mesh.cell_node_ids[iel][7] #8
+        end
+        #
+        # Fill in elements dictionary needed by NodeOrdering.jl
+        #
+        elements = Dict(
+            kk => mesh.conn[1:8, kk]
+            for kk = 1:mesh.nelem)
+        element_types = Dict(
+            kk => :Hexa8
+            for kk = 1:mesh.nelem)
+        
+        #
+        #Use NodeNumbering.jl
+        #
+        #adjacency = create_adjacency_graph(elements, element_types)
+        #degrees = node_degrees(adjacency)
+        #neworder = RCM(adjacency, degrees, tot_linear_poin, tot_linear_poin)
+        #finalorder = renumbering(neworder)
+        #RCM_adjacency = create_RCM_adjacency(adjacency, finalorder)
+        #newmatrix = adjacency_visualization(RCM_adjacency)
+        #display(UnicodePlots.heatmap(newmatrix))
+        
+        
+        #
+        # Rewrite coordinates in RCM order:
+        #
+        open("./COORDS_LO.dat", "w") do f
+            for ip = 1:mesh.npoin_linear
+                mesh.x[ip] = model.grid.node_coordinates[ip][1]
+                mesh.y[ip] = model.grid.node_coordinates[ip][2]
+                mesh.z[ip] = model.grid.node_coordinates[ip][3]
+                @printf(f, " %.6f %.6f %.6f %d\n", mesh.x[ip],  mesh.y[ip], mesh.z[ip], ip)
+            end
+        end #f
+    end
 
 
 
 
-#---------------------------------------------------------------------------------
-# YT Determine boundary nodes and assign node numbers to appropriate array
-#---------------------------------------------------------------------------------
-xmin_npoin = 0
-xmax_npoin = 0
-ymin_npoin = 0
-ymax_npoin = 0
-zmin_npoin = 0
-zmax_npoin = 0
-for ip=1:mesh.npoin
-    mesh.xmin = min(mesh.xmin, mesh.x[ip])
-    mesh.xmax = max(mesh.xmax, mesh.x[ip])
-    if (mesh.nsd >1)
-        mesh.ymin = min(mesh.ymin, mesh.y[ip])
-        mesh.ymax = max(mesh.ymax, mesh.y[ip])
+    #
+    # Add high-order points to edges, faces, and elements (volumes)
+    #
+    # initialize LGL struct and buyild Gauss-Lobatto-xxx points
+    lgl = basis_structs_ξ_ω!(inputs[:interpolation_nodes], mesh.nop)
+
+    println(" # POPULATE GRID with SPECTRAL NODES ............................ ")
+    #
+    # Edges
+    #
+    populate_conn_edge_el!(mesh, SD)
+    @time add_high_order_nodes_edges!(mesh, lgl, SD)
+
+    #
+    # Faces
+    #
+    populate_conn_face_el!(mesh, SD)
+    @time add_high_order_nodes_faces!(mesh, lgl, SD)
+
+    #
+    # Volume
+    #
+    # NOTICE: in 2D we consider only edges and 2D faces
+    #         
+    @time add_high_order_nodes_volumes!(mesh, lgl, SD)
+
+    for ip = mesh.npoin_linear+1:mesh.npoin
+        mesh.x[ip] = mesh.x_ho[ip]
+        mesh.y[ip] = mesh.y_ho[ip]
+        mesh.z[ip] = 0.0
         if (mesh.nsd > 2)
-            mesh.zmin = min(mesh.zmin, mesh.z[ip])
-            mesh.zmax = max(mesh.zmax, mesh.z[ip])
+            mesh.z[ip] = mesh.z_ho[ip]
         end
     end
-end
-#mesh.xmin = -2.0
-#mesh.xmax = 2.0
-#mesh.ymin = -2.0
-#mesh.ymax = 2.0
-for ip=1:mesh.npoin
-    if (AlmostEqual(mesh.xmin,mesh.x[ip]))
-        xmin_npoin +=1
+
+
+    #----------------------------------------------------------------------
+    # Extract boundary edge nodes:
+    #----------------------------------------------------------------------
+    isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
+    isboundary_face = compute_isboundary_face(topology, mesh.nsd-2)
+
+    #bdy_edge_in_elem = zeros(Int64, mesh.nedges_bdy, mesh.ngl)
+    #
+    poin_in_bdy_edge = zeros(Int64, mesh.nedges_bdy, mesh.ngl)
+    bdy_edge_in_elem = zeros(Int64, mesh.nedges_bdy)
+    #
+    #bdy_face = zeros(Int64, mesh.nfaces_bdy, mesh.ngl*mesh.ngl)
+
+    iedge_bdy = iface_bdy = 1
+    for i = 1:mesh.nedges #total nedges
+        if isboundary_edge[i] == 1
+            for igl = 1:mesh.ngl
+                poin_in_bdy_edge[iedge_bdy, igl] = mesh.conn_edge_poin[i,igl]
+            end
+            iedge_bdy += 1
+        end
     end
-    if (AlmostEqual(mesh.xmax,mesh.x[ip]))
-        xmax_npoin +=1
+    for iel = 1:mesh.nelem
+        for iedge_bdy = 1:mesh.nedges_bdy
+            if issubset(poin_in_bdy_edge[iedge_bdy, :], mesh.connijk[:, :, iel])
+                bdy_edge_in_elem[iedge_bdy] = iel
+            end
+        end
     end
+
+    for iedge_bdy = 1:mesh.nedges_bdy
+        @printf(" bdy_edge %d ∈ elem %d and has points\n", iedge_bdy, bdy_edge_in_elem[iedge_bdy])
+        for igl = 1:mesh.ngl
+            @printf(" %d", poin_in_bdy_edge[iedge_bdy, igl])
+        end
+        @printf("\n\n")
+    end
+    error("hjkjkkljjkl")
+
+
+    #=
+    for i=1:length(mesh.conn_unique_faces)
+    if isboundary_face[i] == 1
+    bdy_face[ibdy_face,1] = mesh.conn_unique_faces[i][1]
+    bdy_face[ibdy_face,2] = mesh.conn_unique_faces[i][2]
+    bdy_face[ibdy_face,3] = mesh.conn_unique_faces[i][3]
+    bdy_face[ibdy_face,4] = mesh.conn_unique_faces[i][4]
+    @info ibdy_face, bdy_face[ibdy_face,1], bdy_face[ibdy_face,2], bdy_face[ibdy_face,3], bdy_face[ibdy_face,4]
+    ibdy_face += 1
+    end 
+    end=#
+
+
+    for ie=1:mesh.nelem
+        
+        nothing
+    end
+    error(" ERROR mesh.jl err")
+    
+    #compute_element_size_driver(mesh, SD, TFloat)
+    #error("assasasa")
+
+
+
+
+    #---------------------------------------------------------------------------------
+    # YT Determine boundary nodes and assign node numbers to appropriate array
+    #---------------------------------------------------------------------------------
+    xmin_npoin = 0
+    xmax_npoin = 0
+    ymin_npoin = 0
+    ymax_npoin = 0
+    zmin_npoin = 0
+    zmax_npoin = 0
+    for ip=1:mesh.npoin
+        mesh.xmin = min(mesh.xmin, mesh.x[ip])
+        mesh.xmax = max(mesh.xmax, mesh.x[ip])
+        if (mesh.nsd >1)
+            mesh.ymin = min(mesh.ymin, mesh.y[ip])
+            mesh.ymax = max(mesh.ymax, mesh.y[ip])
+            if (mesh.nsd > 2)
+                mesh.zmin = min(mesh.zmin, mesh.z[ip])
+                mesh.zmax = max(mesh.zmax, mesh.z[ip])
+            end
+        end
+    end
+    #mesh.xmin = -2.0
+    #mesh.xmax = 2.0
+    #mesh.ymin = -2.0
+    #mesh.ymax = 2.0
+    for ip=1:mesh.npoin
+        if (AlmostEqual(mesh.xmin,mesh.x[ip]))
+            xmin_npoin +=1
+        end
+        if (AlmostEqual(mesh.xmax,mesh.x[ip]))
+            xmax_npoin +=1
+        end
+        if (mesh.nsd > 1)
+            if (AlmostEqual(mesh.ymin,mesh.y[ip]))
+                ymin_npoin +=1
+            end
+            if (AlmostEqual(mesh.ymax,mesh.y[ip]))
+                ymax_npoin +=1
+            end
+            if (mesh.nsd > 2)
+                if (AlmostEqual(mesh.zmin,mesh.z[ip]))
+                    zmin_npoin +=1
+                end
+                if (AlmostEqual(mesh.zmax,mesh.z[ip]))
+                    zmax_npoin +=1
+                end
+            end
+        end
+    end
+    mesh.bc_xmin = Array{Int64}(undef,xmin_npoin)
+    mesh.bc_xmax = Array{Int64}(undef,xmax_npoin)
     if (mesh.nsd > 1)
-        if (AlmostEqual(mesh.ymin,mesh.y[ip]))
-            ymin_npoin +=1
-        end
-        if (AlmostEqual(mesh.ymax,mesh.y[ip]))
-            ymax_npoin +=1
-        end
-        if (mesh.nsd > 2)
-            if (AlmostEqual(mesh.zmin,mesh.z[ip]))
-                zmin_npoin +=1
-            end
-            if (AlmostEqual(mesh.zmax,mesh.z[ip]))
-                zmax_npoin +=1
-            end
-        end
+        mesh.bc_ymin = Array{Int64}(undef,ymin_npoin)
+        mesh.bc_ymax = Array{Int64}(undef,ymax_npoin)
     end
-end
-mesh.bc_xmin = Array{Int64}(undef,xmin_npoin)
-mesh.bc_xmax = Array{Int64}(undef,xmax_npoin)
-if (mesh.nsd > 1)
-    mesh.bc_ymin = Array{Int64}(undef,ymin_npoin)
-    mesh.bc_ymax = Array{Int64}(undef,ymax_npoin)
-end
-if (mesh.nsd > 2)
-    mesh.bc_zmin = Array{Int64}(undef,zmin_npoin)
-    mesh.bc_zmax = Array{Int64}(undef,zmax_npoin)
-end
-mesh.bound_elem = Array{Int64}(undef,2)
-if (mesh.nsd == 2)
-    nbce = ceil(size(mesh.bc_xmin,1)/ngl)+ceil(size(mesh.bc_xmax,1)/ngl)+ceil(size(mesh.bc_ymin,1)/ngl)+ceil(size(mesh.bc_ymax,1)/ngl)
-    mesh.bound_elem = Array{Int64}(undef,Int64(nbce)) 
-end
-
-if (mesh.nsd == 3)
-    nbce = ceil(size(mesh.bc_zmin,1)/ngl)+ceil(size(mesh.bc_zmax,1)/ngl)+ ceil(size(mesh.bc_xmin,1)/ngl)+ceil(size(mesh.bc_xmax,1)/ngl)+ceil(size(mesh.bc_ymin,1)/ngl)+ceil(size(mesh.bc_ymax,1)/ngl)
-    mesh.bound_elem = Array{Int64}(undef,Int64(nbce))
-end
-
-iteratelem=1
-iterxmin=1
-iterxmax=1
-iterymin=1
-iterymax=1
-iterzmin=1
-iterzmax=1
-
-for ip=1:mesh.npoin
-    if (AlmostEqual(mesh.xmin,mesh.x[ip]))
-        mesh.bc_xmin[iterxmin]=ip
-        iterxmin +=1
+    if (mesh.nsd > 2)
+        mesh.bc_zmin = Array{Int64}(undef,zmin_npoin)
+        mesh.bc_zmax = Array{Int64}(undef,zmax_npoin)
     end
-    if (AlmostEqual(mesh.xmax,mesh.x[ip]))
-        mesh.bc_xmax[iterxmax]=ip
-        iterxmax +=1
+    mesh.bound_elem = Array{Int64}(undef,2)
+    if (mesh.nsd == 2)
+        nbce = ceil(size(mesh.bc_xmin,1)/ngl)+ceil(size(mesh.bc_xmax,1)/ngl)+ceil(size(mesh.bc_ymin,1)/ngl)+ceil(size(mesh.bc_ymax,1)/ngl)
+        mesh.bound_elem = Array{Int64}(undef,Int64(nbce)) 
     end
-    if (mesh.nsd > 1)
-        if (AlmostEqual(mesh.ymin,mesh.y[ip]))
-            mesh.bc_ymin[iterymin]=ip
-            iterymin +=1
+
+    if (mesh.nsd == 3)
+        nbce = ceil(size(mesh.bc_zmin,1)/ngl)+ceil(size(mesh.bc_zmax,1)/ngl)+ ceil(size(mesh.bc_xmin,1)/ngl)+ceil(size(mesh.bc_xmax,1)/ngl)+ceil(size(mesh.bc_ymin,1)/ngl)+ceil(size(mesh.bc_ymax,1)/ngl)
+        mesh.bound_elem = Array{Int64}(undef,Int64(nbce))
+    end
+
+    iteratelem=1
+    iterxmin=1
+    iterxmax=1
+    iterymin=1
+    iterymax=1
+    iterzmin=1
+    iterzmax=1
+
+    for ip=1:mesh.npoin
+        if (AlmostEqual(mesh.xmin,mesh.x[ip]))
+            mesh.bc_xmin[iterxmin]=ip
+            iterxmin +=1
         end
-        if (AlmostEqual(mesh.ymax,mesh.y[ip]))
-            mesh.bc_ymax[iterymax]=ip
-            iterymax +=1
+        if (AlmostEqual(mesh.xmax,mesh.x[ip]))
+            mesh.bc_xmax[iterxmax]=ip
+            iterxmax +=1
         end
-        if (mesh.nsd > 2)
-            if (AlmostEqual(mesh.zmin,mesh.z[ip]))
-                mesh.bc_zmin[iterzmin]=ip
-                iterzmin +=1
+        if (mesh.nsd > 1)
+            if (AlmostEqual(mesh.ymin,mesh.y[ip]))
+                mesh.bc_ymin[iterymin]=ip
+                iterymin +=1
             end
-            if (AlmostEqual(mesh.zmax,mesh.z[ip]))
-                mesh.bc_zmax[iterzmax]=ip
-                iterzmax +=1
+            if (AlmostEqual(mesh.ymax,mesh.y[ip]))
+                mesh.bc_ymax[iterymax]=ip
+                iterymax +=1
             end
-        end
-    end
-end
-##add boundary element numbers to array for ease of access, and set up boundary face arrays
-#Arrange boundary face array
-
-if (mesh.nsd == 2)
-    mesh.xmin_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_xmin,1)/(mesh.ngl-1))))
-    mesh.xmax_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_xmax,1)/(mesh.ngl-1))))
-    mesh.ymin_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_ymin,1)/(mesh.ngl-1))))
-    mesh.ymax_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_ymax,1)/(mesh.ngl-1))))
-    mesh.xmin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmin,1)/(mesh.ngl-1))))
-    mesh.ymin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymin,1)/(mesh.ngl-1))))
-    mesh.xmax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmax,1)/(mesh.ngl-1))))
-    mesh.ymax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymax,1)/(mesh.ngl-1))))
-end
-
-if (mesh.nsd > 2)
-    mesh.xmin_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_xmin,1)/mesh.ngl)))
-    mesh.xmax_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_xmax,1)/mesh.ngl)))
-    mesh.ymin_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymin,1)/mesh.ngl)))
-    mesh.ymax_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymax,1)/mesh.ngl)))
-    mesh.zmin_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymin,1)/mesh.ngl)))
-    mesh.zmax_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymax,1)/mesh.ngl)))
-    mesh.xmin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmin,1)/(mesh.ngl-1))))
-    mesh.ymin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymin,1)/(mesh.ngl-1))))
-    mesh.zmin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_zmin,1)/(mesh.ngl-1))))
-    mesh.xmax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmax,1)/(mesh.ngl-1))))
-    mesh.ymax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymax,1)/(mesh.ngl-1))))
-    mesh.zmax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_zmax,1)/(mesh.ngl-1))))
-end
-
-xmin_cntr = 1
-xmax_cntr = 1
-ymin_cntr = 1
-ymax_cntr = 1
-zmin_cntr = 1
-zmax_cntr = 1
-
-if (mesh.nsd ==1)
-    mesh.bound_elem[1]=1
-    mesh.bound_elem[2]=mesh.nelem
-end
-if (mesh.nsd ==2)
-    for iel=1:mesh.nelem
-        xmin = mesh.x[mesh.connijk[1,1,iel]]
-        ymin = mesh.y[mesh.connijk[1,1,iel]]
-        xmax = mesh.x[mesh.connijk[1,1,iel]]
-        ymax = mesh.y[mesh.connijk[1,1,iel]]
-        ixmin = 1
-        iymin = 1
-        ixmax = mesh.ngl
-        iymax = mesh.ngl 
-        for i=1:mesh.ngl
-            for j=1:mesh.ngl
-                ip = mesh.connijk[i,j,iel]
-                xmin = min(xmin,mesh.x[ip])
-                xmax = max(xmax,mesh.x[ip])
-                ymin = min(ymin,mesh.y[ip])
-                ymax = max(ymax,mesh.y[ip])
-                if (xmin == mesh.x[ip])
-                   ixmin = i
+            if (mesh.nsd > 2)
+                if (AlmostEqual(mesh.zmin,mesh.z[ip]))
+                    mesh.bc_zmin[iterzmin]=ip
+                    iterzmin +=1
                 end
-                if (ymin == mesh.y[ip])
-                   iymin = j
+                if (AlmostEqual(mesh.zmax,mesh.z[ip]))
+                    mesh.bc_zmax[iterzmax]=ip
+                    iterzmax +=1
                 end
-                if (xmax == mesh.x[ip])
-                   ixmax = i
+            end
+        end
+    end
+    ##add boundary element numbers to array for ease of access, and set up boundary face arrays
+    #Arrange boundary face array
+
+    if (mesh.nsd == 2)
+        mesh.xmin_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_xmin,1)/(mesh.ngl-1))))
+        mesh.xmax_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_xmax,1)/(mesh.ngl-1))))
+        mesh.ymin_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_ymin,1)/(mesh.ngl-1))))
+        mesh.ymax_faces = Array{Int64}(undef,mesh.ngl,Int64(floor(size(mesh.bc_ymax,1)/(mesh.ngl-1))))
+        mesh.xmin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmin,1)/(mesh.ngl-1))))
+        mesh.ymin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymin,1)/(mesh.ngl-1))))
+        mesh.xmax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmax,1)/(mesh.ngl-1))))
+        mesh.ymax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymax,1)/(mesh.ngl-1))))
+    end
+
+    if (mesh.nsd > 2)
+        mesh.xmin_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_xmin,1)/mesh.ngl)))
+        mesh.xmax_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_xmax,1)/mesh.ngl)))
+        mesh.ymin_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymin,1)/mesh.ngl)))
+        mesh.ymax_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymax,1)/mesh.ngl)))
+        mesh.zmin_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymin,1)/mesh.ngl)))
+        mesh.zmax_faces = Array{Int64}(undef,mesh.ngl,mesh.ngl,Int64(ceil(size(mesh.bc_ymax,1)/mesh.ngl)))
+        mesh.xmin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmin,1)/(mesh.ngl-1))))
+        mesh.ymin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymin,1)/(mesh.ngl-1))))
+        mesh.zmin_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_zmin,1)/(mesh.ngl-1))))
+        mesh.xmax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_xmax,1)/(mesh.ngl-1))))
+        mesh.ymax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_ymax,1)/(mesh.ngl-1))))
+        mesh.zmax_facetoelem = Array{Int64}(undef,Int64(floor(size(mesh.bc_zmax,1)/(mesh.ngl-1))))
+    end
+
+    xmin_cntr = 1
+    xmax_cntr = 1
+    ymin_cntr = 1
+    ymax_cntr = 1
+    zmin_cntr = 1
+    zmax_cntr = 1
+
+    if (mesh.nsd ==1)
+        mesh.bound_elem[1]=1
+        mesh.bound_elem[2]=mesh.nelem
+    end
+    if (mesh.nsd ==2)
+        for iel=1:mesh.nelem
+            xmin = mesh.x[mesh.connijk[1,1,iel]]
+            ymin = mesh.y[mesh.connijk[1,1,iel]]
+            xmax = mesh.x[mesh.connijk[1,1,iel]]
+            ymax = mesh.y[mesh.connijk[1,1,iel]]
+            ixmin = 1
+            iymin = 1
+            ixmax = mesh.ngl
+            iymax = mesh.ngl 
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[i,j,iel]
+                    xmin = min(xmin,mesh.x[ip])
+                    xmax = max(xmax,mesh.x[ip])
+                    ymin = min(ymin,mesh.y[ip])
+                    ymax = max(ymax,mesh.y[ip])
+                    if (xmin == mesh.x[ip])
+                        ixmin = i
+                    end
+                    if (ymin == mesh.y[ip])
+                        iymin = j
+                    end
+                    if (xmax == mesh.x[ip])
+                        ixmax = i
+                    end
+                    if (ymax == mesh.y[ip])
+                        iymax = j
+                    end 
                 end
-                if (ymax == mesh.y[ip])
-                   iymax = j
+            end
+            if (xmin == mesh.xmin || ymin == mesh.ymin || xmax ==mesh.xmax || ymax == mesh.ymax)
+                mesh.bound_elem[iteratelem] = iel
+                iteratelem += 1
+            end
+            if (xmin == mesh.xmin)
+                for i=1:mesh.ngl
+                    ip = mesh.connijk[ixmin,i,iel]
+                    mesh.xmin_faces[i,xmin_cntr] = ip
+                end
+                mesh.xmin_facetoelem[xmin_cntr] = iel
+                xmin_cntr +=1
+            end
+            if (ymin == mesh.ymin)
+                for i=1:mesh.ngl
+                    ip = mesh.connijk[i,iymin,iel]
+                    mesh.ymin_faces[i,ymin_cntr] = ip
                 end 
+                mesh.ymin_facetoelem[ymin_cntr] = iel
+                ymin_cntr +=1
             end
+            if (xmax == mesh.xmax)
+                for i=1:mesh.ngl
+                    ip = mesh.connijk[ixmax,i,iel]
+                    mesh.xmax_faces[i,xmax_cntr] = ip
+                end 
+                mesh.xmax_facetoelem[xmax_cntr] = iel
+                xmax_cntr +=1
+            end
+            if (ymax == mesh.ymax)
+                for i=1:mesh.ngl
+                    ip = mesh.connijk[i,iymax,iel]
+                    mesh.ymax_faces[i,ymax_cntr] = ip
+                end
+                mesh.ymax_facetoelem[ymax_cntr] = iel
+                ymax_cntr +=1
+            end
+            
         end
-        if (xmin == mesh.xmin || ymin == mesh.ymin || xmax ==mesh.xmax || ymax == mesh.ymax)
-            mesh.bound_elem[iteratelem] = iel
-            iteratelem += 1
-        end
-        if (xmin == mesh.xmin)
-           for i=1:mesh.ngl
-               ip = mesh.connijk[ixmin,i,iel]
-               mesh.xmin_faces[i,xmin_cntr] = ip
-           end
-           mesh.xmin_facetoelem[xmin_cntr] = iel
-           xmin_cntr +=1
-        end
-        if (ymin == mesh.ymin)
-           for i=1:mesh.ngl
-               ip = mesh.connijk[i,iymin,iel]
-               mesh.ymin_faces[i,ymin_cntr] = ip
-           end 
-           mesh.ymin_facetoelem[ymin_cntr] = iel
-           ymin_cntr +=1
-        end
-        if (xmax == mesh.xmax)
-           for i=1:mesh.ngl
-               ip = mesh.connijk[ixmax,i,iel]
-               mesh.xmax_faces[i,xmax_cntr] = ip
-           end 
-           mesh.xmax_facetoelem[xmax_cntr] = iel
-           xmax_cntr +=1
-        end
-        if (ymax == mesh.ymax)
-           for i=1:mesh.ngl
-               ip = mesh.connijk[i,iymax,iel]
-               mesh.ymax_faces[i,ymax_cntr] = ip
-           end
-           mesh.ymax_facetoelem[ymax_cntr] = iel
-           ymax_cntr +=1
-        end
-             
     end
-end
 if (mesh.nsd ==3)
     for iel=1:mesh.nelem
         xmin = mesh.x[mesh.connijk[1,1,1,iel]]
@@ -787,64 +777,64 @@ if (mesh.nsd ==3)
             iteratelem += 1
         end
         if (xmin == mesh.xmin)
-           for i=1:mesh.ngl
-               for j=1:mesh.ngl
-                   ip = mesh.connijk[ixmin,i,j,iel]
-                   mesh.xmin_faces[i,j,xmin_cntr] = ip
-               end
-           end
-           mesh.xmin_facetoelem[xmin_cntr] = iel 
-           xmin_cntr +=1
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[ixmin,i,j,iel]
+                    mesh.xmin_faces[i,j,xmin_cntr] = ip
+                end
+            end
+            mesh.xmin_facetoelem[xmin_cntr] = iel 
+            xmin_cntr +=1
         end
         if (xmax == mesh.xmax)
-           for i=1:mesh.ngl
-               for j=1:mesh.ngl
-                   ip = mesh.connijk[ixmax,i,j,iel]
-                   mesh.xmax_faces[i,j,xmax_cntr] = ip
-               end
-           end
-           mesh.xmax_facetoelem[xmax_cntr] = iel
-           xmax_cntr +=1
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[ixmax,i,j,iel]
+                    mesh.xmax_faces[i,j,xmax_cntr] = ip
+                end
+            end
+            mesh.xmax_facetoelem[xmax_cntr] = iel
+            xmax_cntr +=1
         end
         if (ymin == mesh.ymin)
-           for i=1:mesh.ngl
-               for j=1:mesh.ngl
-                   ip = mesh.connijk[i,iymin,j,iel]
-                   mesh.ymin_faces[i,j,ymin_cntr] = ip
-               end
-           end
-           mesh.ymin_facetoelem[ymin_cntr] = iel
-           ymin_cntr +=1
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[i,iymin,j,iel]
+                    mesh.ymin_faces[i,j,ymin_cntr] = ip
+                end
+            end
+            mesh.ymin_facetoelem[ymin_cntr] = iel
+            ymin_cntr +=1
         end
         if (ymax == mesh.ymax)
-           for i=1:mesh.ngl
-               for j=1:mesh.ngl
-                   ip = mesh.connijk[i,iymax,j,iel]
-                   mesh.ymax_faces[i,j,ymax_cntr] = ip
-               end
-           end
-           mesh.ymax_facetoelem[ymax_cntr] = iel
-           ymax_cntr +=1
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[i,iymax,j,iel]
+                    mesh.ymax_faces[i,j,ymax_cntr] = ip
+                end
+            end
+            mesh.ymax_facetoelem[ymax_cntr] = iel
+            ymax_cntr +=1
         end
         if (zmin == mesh.zmin)
-           for i=1:mesh.ngl
-               for j=1:mesh.ngl
-                   ip = mesh.connijk[i,j,izmin,iel]
-                   mesh.zmin_faces[i,j,zmin_cntr] = ip
-               end
-           end
-           mesh.zmin_facetoelem[zmin_cntr] = iel
-           zmin_cntr +=1
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[i,j,izmin,iel]
+                    mesh.zmin_faces[i,j,zmin_cntr] = ip
+                end
+            end
+            mesh.zmin_facetoelem[zmin_cntr] = iel
+            zmin_cntr +=1
         end
         if (zmax == mesh.zmax)
-           for i=1:mesh.ngl
-               for j=1:mesh.ngl
-                   ip = mesh.connijk[i,j,izmax,iel]
-                   mesh.zmax_faces[i,j,zmax_cntr] = ip
-               end
-           end
-           mesh.zmax_facetoelem[zmax_cntr] = iel
-           zmax_cntr +=1
+            for i=1:mesh.ngl
+                for j=1:mesh.ngl
+                    ip = mesh.connijk[i,j,izmax,iel]
+                    mesh.zmax_faces[i,j,zmax_cntr] = ip
+                end
+            end
+            mesh.zmax_facetoelem[zmax_cntr] = iel
+            zmax_cntr +=1
         end
         
     end
@@ -904,7 +894,7 @@ if (mesh.nsd > 1)
     end
 end
 
-    
+
 #
 #
 # Free memory of obsolete arrays
@@ -1558,132 +1548,132 @@ function  add_high_order_nodes_edges!(mesh::St_mesh, lgl, SD::NSD_3D)
             ender = 2
             stepper =-1
         end
-for l = starter:stepper:ender
-    ip = mesh.conn_edge_poin[iedge_g, l]
-    mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
-    iconn = iconn + 1
-    #   mesh.connijk[1,l,iel] = ip
-end
-iedge_el = 7
-iedge_g = edge_ids[iedge_el]
-ip1 = mesh.conn_unique_edges[iedge_g][1]
-ip2 = mesh.conn_unique_edges[iedge_g][2]
-if (mesh.conn[6,iel] == ip1)
-    starter = 2
-    ender = ngl-1
-    stepper =1
-else
-    starter = ngl-1
-    ender = 2
-    stepper =-1
-end
-for l = starter:stepper:ender
-    ip = mesh.conn_edge_poin[iedge_g, l]
-    mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
-    iconn = iconn + 1
-    #   mesh.connijk[1,l,iel] = ip
-end
-iedge_el = 11
-iedge_g = edge_ids[iedge_el]
-ip1 = mesh.conn_unique_edges[iedge_g][1]
-ip2 = mesh.conn_unique_edges[iedge_g][2]
-if (mesh.conn[7,iel] == ip1)
-    starter = 2
-    ender = ngl-1
-    stepper =1
-else
-    starter = ngl-1
-    ender = 2
-    stepper =-1
-end
-for l = starter:stepper:ender
-    ip = mesh.conn_edge_poin[iedge_g, l]
-    mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
-    iconn = iconn + 1
-    #   mesh.connijk[1,l,iel] = ip
-end
-iedge_el = 5
-iedge_g = edge_ids[iedge_el]
-ip1 = mesh.conn_unique_edges[iedge_g][1]
-ip2 = mesh.conn_unique_edges[iedge_g][2]
-if (mesh.conn[4,iel] == ip1)
-    starter = 2
-    ender = ngl-1
-    stepper =1
-else
-    starter = ngl-1
-    ender = 2
-    stepper =-1
-end
-for l = starter:stepper:ender
-    ip = mesh.conn_edge_poin[iedge_g, l]
-    mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
-    iconn = iconn + 1
-    #   mesh.connijk[1,l,iel] = ip
-end
-iter=1
-for l=2:ngl-1 
-    mesh.connijk[l,1,1,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for m=2:ngl-1
-    mesh.connijk[ngl,m,1,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end 
-for l=ngl-1:-1:2
-    mesh.connijk[l,ngl,1,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for m=ngl-1:-1:2
-    mesh.connijk[1,m,1,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for n=2:ngl-1
-    mesh.connijk[1,1,n,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for n=2:ngl-1
-    mesh.connijk[ngl,1,n,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for n=2:ngl-1
-    mesh.connijk[ngl,ngl,n,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for n=2:ngl-1
-    mesh.connijk[1,ngl,n,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for l=2:ngl-1
-    mesh.connijk[l,1,ngl,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for m=2:ngl-1
-    mesh.connijk[ngl,m,ngl,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for l=ngl-1:-1:2
-    mesh.connijk[l,ngl,ngl,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-for m=ngl-1:-1:2
-    mesh.connijk[1,m,ngl,iel] = mesh.conn[8+iter,iel]
-    iter+=1
-end
-#= for iedge_el = 1:length(edge_ids)
-iedge_g = edge_ids[iedge_el]
-for l = 2:ngl-1
-ip = mesh.conn_edge_poin[iedge_g, l]
-mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
-iconn = iconn + 1
-end
-end=#
-end
-#show(stdout, "text/plain", mesh.conn')
-#error("now")
+        for l = starter:stepper:ender
+            ip = mesh.conn_edge_poin[iedge_g, l]
+            mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
+            iconn = iconn + 1
+            #   mesh.connijk[1,l,iel] = ip
+        end
+        iedge_el = 7
+        iedge_g = edge_ids[iedge_el]
+        ip1 = mesh.conn_unique_edges[iedge_g][1]
+        ip2 = mesh.conn_unique_edges[iedge_g][2]
+        if (mesh.conn[6,iel] == ip1)
+            starter = 2
+            ender = ngl-1
+            stepper =1
+        else
+            starter = ngl-1
+            ender = 2
+            stepper =-1
+        end
+        for l = starter:stepper:ender
+            ip = mesh.conn_edge_poin[iedge_g, l]
+            mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
+            iconn = iconn + 1
+            #   mesh.connijk[1,l,iel] = ip
+        end
+        iedge_el = 11
+        iedge_g = edge_ids[iedge_el]
+        ip1 = mesh.conn_unique_edges[iedge_g][1]
+        ip2 = mesh.conn_unique_edges[iedge_g][2]
+        if (mesh.conn[7,iel] == ip1)
+            starter = 2
+            ender = ngl-1
+            stepper =1
+        else
+            starter = ngl-1
+            ender = 2
+            stepper =-1
+        end
+        for l = starter:stepper:ender
+            ip = mesh.conn_edge_poin[iedge_g, l]
+            mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
+            iconn = iconn + 1
+            #   mesh.connijk[1,l,iel] = ip
+        end
+        iedge_el = 5
+        iedge_g = edge_ids[iedge_el]
+        ip1 = mesh.conn_unique_edges[iedge_g][1]
+        ip2 = mesh.conn_unique_edges[iedge_g][2]
+        if (mesh.conn[4,iel] == ip1)
+            starter = 2
+            ender = ngl-1
+            stepper =1
+        else
+            starter = ngl-1
+            ender = 2
+            stepper =-1
+        end
+        for l = starter:stepper:ender
+            ip = mesh.conn_edge_poin[iedge_g, l]
+            mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
+            iconn = iconn + 1
+            #   mesh.connijk[1,l,iel] = ip
+        end
+        iter=1
+        for l=2:ngl-1 
+            mesh.connijk[l,1,1,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for m=2:ngl-1
+            mesh.connijk[ngl,m,1,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end 
+        for l=ngl-1:-1:2
+            mesh.connijk[l,ngl,1,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for m=ngl-1:-1:2
+            mesh.connijk[1,m,1,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for n=2:ngl-1
+            mesh.connijk[1,1,n,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for n=2:ngl-1
+            mesh.connijk[ngl,1,n,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for n=2:ngl-1
+            mesh.connijk[ngl,ngl,n,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for n=2:ngl-1
+            mesh.connijk[1,ngl,n,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for l=2:ngl-1
+            mesh.connijk[l,1,ngl,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for m=2:ngl-1
+            mesh.connijk[ngl,m,ngl,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for l=ngl-1:-1:2
+            mesh.connijk[l,ngl,ngl,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        for m=ngl-1:-1:2
+            mesh.connijk[1,m,ngl,iel] = mesh.conn[8+iter,iel]
+            iter+=1
+        end
+        #= for iedge_el = 1:length(edge_ids)
+        iedge_g = edge_ids[iedge_el]
+        for l = 2:ngl-1
+        ip = mesh.conn_edge_poin[iedge_g, l]
+        mesh.conn[2^mesh.nsd + iconn, iel] = ip #OK
+        iconn = iconn + 1
+        end
+        end=#
+    end
+    #show(stdout, "text/plain", mesh.conn')
+    #error("now")
 
-println(" # POPULATE GRID with SPECTRAL NODES ............................ EDGES DONE")
-return 
+    println(" # POPULATE GRID with SPECTRAL NODES ............................ EDGES DONE")
+    return 
 end
 
 
@@ -1752,14 +1742,14 @@ function  add_high_order_nodes_faces!(mesh::St_mesh, lgl, SD::NSD_2D)
                     ζ = lgl.ξ[m];
                     
 	            mesh.x_ho[ip] = (x1*(1 - ξ)*(1 - ζ)*0.25
-                                     + x2*(1 + ξ)*(1 - ζ)*0.25
-		                     + x3*(1 + ξ)*(1 + ζ)*0.25			
-		                     + x4*(1 - ξ)*(1 + ζ)*0.25)
+                    + x2*(1 + ξ)*(1 - ζ)*0.25
+		    + x3*(1 + ξ)*(1 + ζ)*0.25			
+		    + x4*(1 - ξ)*(1 + ζ)*0.25)
                     
                     mesh.y_ho[ip] =  (y1*(1 - ξ)*(1 - ζ)*0.25
-		                      + y2*(1 + ξ)*(1 - ζ)*0.25
-		                      + y3*(1 + ξ)*(1 + ζ)*0.25
-		                      + y4*(1 - ξ)*(1 + ζ)*0.25)
+		    + y2*(1 + ξ)*(1 - ζ)*0.25
+		    + y3*(1 + ξ)*(1 + ζ)*0.25
+		    + y4*(1 - ξ)*(1 + ζ)*0.25)
 
                     conn_face_poin[iface_g, l, m] = ip
                     #NEW ORDERING
@@ -1844,30 +1834,30 @@ function  add_high_order_nodes_faces!(mesh::St_mesh, lgl, SD::NSD_2D)
     iter = iter+1
     end
     end=# 
-## NEW NUMBERING 
-for iel = 1:mesh.nelem
-    iter =1
-    for m=ngl-1:-1:2
-        mesh.connijk[1,m,iel] = mesh.conn[4+iter,iel]
-        iter = iter+1
+    ## NEW NUMBERING 
+    for iel = 1:mesh.nelem
+        iter =1
+        for m=ngl-1:-1:2
+            mesh.connijk[1,m,iel] = mesh.conn[4+iter,iel]
+            iter = iter+1
+        end
+        for m=2:ngl-1
+            mesh.connijk[m,1,iel] = mesh.conn[4+iter,iel]
+            iter = iter+1
+        end
+        for m=2:ngl-1
+            mesh.connijk[ngl,m,iel] = mesh.conn[4+iter,iel]
+            iter = iter+1
+        end
+        for m=ngl-1:-1:2
+            mesh.connijk[m,ngl,iel] = mesh.conn[4+iter,iel]
+            iter = iter+1
+        end
     end
-    for m=2:ngl-1
-        mesh.connijk[m,1,iel] = mesh.conn[4+iter,iel]
-        iter = iter+1
+    for iel =1:mesh.nelem
+        #      show(stdout, "text/plain", mesh.connijk[:,:,iel]')
     end
-    for m=2:ngl-1
-        mesh.connijk[ngl,m,iel] = mesh.conn[4+iter,iel]
-        iter = iter+1
-    end
-    for m=ngl-1:-1:2
-        mesh.connijk[m,ngl,iel] = mesh.conn[4+iter,iel]
-        iter = iter+1
-    end
-end
-for iel =1:mesh.nelem
-    #      show(stdout, "text/plain", mesh.connijk[:,:,iel]')
-end
-println(" # POPULATE GRID with SPECTRAL NODES ............................ FACES DONE")
+    println(" # POPULATE GRID with SPECTRAL NODES ............................ FACES DONE")
 
 end
 
@@ -2096,150 +2086,150 @@ function  add_high_order_nodes_faces!(mesh::St_mesh, lgl, SD::NSD_3D)
             starter = starter+1
             ender = ender-1
         end
-iconn = iconn+iconn_face-1
-iconn_face = 1 
-iterate = 1
-starter = 2
-ender = ngl-1
-iface_el = 4
-iface_g = face_ids[iface_el]
-while (iconn_face <= (ngl-2)^2)
-    l=ender
-    for m=ender:-1:starter
+        iconn = iconn+iconn_face-1
+        iconn_face = 1 
+        iterate = 1
+        starter = 2
+        ender = ngl-1
+        iface_el = 4
+        iface_g = face_ids[iface_el]
+        while (iconn_face <= (ngl-2)^2)
+            l=ender
+            for m=ender:-1:starter
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[m,ngl,ngl-l+1,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            m=starter
+            for l=ender-1:-1:starter
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[m,ngl,ngl-l+1,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            l=starter
+            for m=starter+1:ender
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[m,ngl,ngl-l+1,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            m=ender
+            for l=starter+1:ender-1
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn+iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[m,ngl,ngl-l+1,iel] = ip
+            end
+            starter = starter+1
+            ender = ender-1
+        end
+        iconn = iconn+iconn_face-1
+        iconn_face = 1 
+        iterate = 1
+        starter = 2
+        ender = ngl-1
+        iface_el = 1
+        iface_g = face_ids[iface_el]
+        while (iconn_face <= (ngl-2)^2)
+            l=ender
+            for m=ender:-1:starter
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[1,m,ngl-l+1,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            m=starter
+            for l=ender-1:-1:starter
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[1,m,ngl-l+1,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            l=starter
+            for m=starter+1:ender
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[1,m,ngl-l+1,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            m=ender
+            for l=starter+1:ender-1
+                ip = conn_face_poin[iface_g, l, m]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn+iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[1,m,ngl-l+1,iel] = ip
+            end
+            starter = starter+1
+            ender = ender-1
+        end
+        iconn = iconn+iconn_face-1
+        iconn_face = 1 
+        iterate = 1
+        starter = 2
+        ender = ngl-1
+        iface_el = 5
+        iface_g = face_ids[iface_el]
+        while (iconn_face <= (ngl-2)^2)
+            m=starter
+            for l=starter:ender
+                ip = conn_face_poin[iface_g, m, l]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[l,m,ngl,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            l=ender
+            for m=starter+1:ender
+                ip = conn_face_poin[iface_g, m, l]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[l,m,ngl,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            m=ender
+            for l=ender-1:-1:starter
+                ip = conn_face_poin[iface_g, m, l]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[l,m,ngl,iel] = ip
+            end
+            if (iconn_face > (ngl-2)^2) break end
+            l=starter
+            for m=ender-1:-1:starter+1
+                ip = conn_face_poin[iface_g, m, l]
+                mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn+iconn_face, iel] = ip
+                iconn_face = iconn_face + 1
+                mesh.connijk[l,m,ngl,iel] = ip
+            end
+            starter = starter+1
+            ender = ender-1
+        end
+        #=istart=2^mesh.nsd + el_edges_internal_nodes
+        iter =1 
+        iconn_face =1
+        starter = 2
+        ender = ngl-1 =#
+        #=for iface_el = 1:length(face_ids)
+        iface_g = face_ids[iface_el]
+        for l = 2:ngl-1
+        for m = 2:ngl-1
         ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[m,ngl,ngl-l+1,iel] = ip
+        mesh.conn[8 + el_edges_internal_nodes + iconn, iel] = ip
+        iconn = iconn + 1
+        end
+        end
+        end=#
     end
-    if (iconn_face > (ngl-2)^2) break end
-    m=starter
-    for l=ender-1:-1:starter
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[m,ngl,ngl-l+1,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    l=starter
-    for m=starter+1:ender
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[m,ngl,ngl-l+1,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    m=ender
-    for l=starter+1:ender-1
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn+iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[m,ngl,ngl-l+1,iel] = ip
-    end
-    starter = starter+1
-    ender = ender-1
-end
-iconn = iconn+iconn_face-1
-iconn_face = 1 
-iterate = 1
-starter = 2
-ender = ngl-1
-iface_el = 1
-iface_g = face_ids[iface_el]
-while (iconn_face <= (ngl-2)^2)
-    l=ender
-    for m=ender:-1:starter
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[1,m,ngl-l+1,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    m=starter
-    for l=ender-1:-1:starter
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[1,m,ngl-l+1,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    l=starter
-    for m=starter+1:ender
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[1,m,ngl-l+1,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    m=ender
-    for l=starter+1:ender-1
-        ip = conn_face_poin[iface_g, l, m]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn+iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[1,m,ngl-l+1,iel] = ip
-    end
-    starter = starter+1
-    ender = ender-1
-end
-iconn = iconn+iconn_face-1
-iconn_face = 1 
-iterate = 1
-starter = 2
-ender = ngl-1
-iface_el = 5
-iface_g = face_ids[iface_el]
-while (iconn_face <= (ngl-2)^2)
-    m=starter
-    for l=starter:ender
-        ip = conn_face_poin[iface_g, m, l]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[l,m,ngl,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    l=ender
-    for m=starter+1:ender
-        ip = conn_face_poin[iface_g, m, l]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[l,m,ngl,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    m=ender
-    for l=ender-1:-1:starter
-        ip = conn_face_poin[iface_g, m, l]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn + iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[l,m,ngl,iel] = ip
-    end
-    if (iconn_face > (ngl-2)^2) break end
-    l=starter
-    for m=ender-1:-1:starter+1
-        ip = conn_face_poin[iface_g, m, l]
-        mesh.conn[2^mesh.nsd + el_edges_internal_nodes + iconn+iconn_face, iel] = ip
-        iconn_face = iconn_face + 1
-        mesh.connijk[l,m,ngl,iel] = ip
-    end
-    starter = starter+1
-    ender = ender-1
-end
-#=istart=2^mesh.nsd + el_edges_internal_nodes
-iter =1 
-iconn_face =1
-starter = 2
-ender = ngl-1 =#
-#=for iface_el = 1:length(face_ids)
-iface_g = face_ids[iface_el]
-for l = 2:ngl-1
-for m = 2:ngl-1
-ip = conn_face_poin[iface_g, l, m]
-mesh.conn[8 + el_edges_internal_nodes + iconn, iel] = ip
-iconn = iconn + 1
-end
-end
-end=#
-end
-#show(stdout, "text/plain", mesh.conn')
-println(" # POPULATE GRID with SPECTRAL NODES ............................ FACES DONE")
+    #show(stdout, "text/plain", mesh.conn')
+    println(" # POPULATE GRID with SPECTRAL NODES ............................ FACES DONE")
 
 end
 
@@ -2327,31 +2317,31 @@ function  add_high_order_nodes_volumes!(mesh::St_mesh, lgl, SD::NSD_3D)
                         ζ = lgl.ξ[n];
                         
 	                mesh.x_ho[ip] = (x1*(1 - ξ)*(1 - η)*(1 - ζ)*0.125
-			                 + x2*(1 + ξ)*(1 - η)*(1 - ζ)*0.125
-			                 + x3*(1 + ξ)*(1 + η)*(1 - ζ)*0.125
-			                 + x4*(1 - ξ)*(1 + η)*(1 - ζ)*0.125
-			                 + x5*(1 - ξ)*(1 - η)*(1 + ζ)*0.125
-			                 + x6*(1 + ξ)*(1 - η)*(1 + ζ)*0.125
-			                 + x7*(1 + ξ)*(1 + η)*(1 + ζ)*0.125
-			                 + x8*(1 - ξ)*(1 + η)*(1 + ζ)*0.125)
+			+ x2*(1 + ξ)*(1 - η)*(1 - ζ)*0.125
+			+ x3*(1 + ξ)*(1 + η)*(1 - ζ)*0.125
+			+ x4*(1 - ξ)*(1 + η)*(1 - ζ)*0.125
+			+ x5*(1 - ξ)*(1 - η)*(1 + ζ)*0.125
+			+ x6*(1 + ξ)*(1 - η)*(1 + ζ)*0.125
+			+ x7*(1 + ξ)*(1 + η)*(1 + ζ)*0.125
+			+ x8*(1 - ξ)*(1 + η)*(1 + ζ)*0.125)
                         
 	                mesh.y_ho[ip] = (y1*(1 - ξ)*(1 - η)*(1 - ζ)*0.125
-			                 + y2*(1 + ξ)*(1 - η)*(1 - ζ)*0.125
-			                 + y3*(1 + ξ)*(1 + η)*(1 - ζ)*0.125
-			                 + y4*(1 - ξ)*(1 + η)*(1 - ζ)*0.125
-			                 + y5*(1 - ξ)*(1 - η)*(1 + ζ)*0.125
-			                 + y6*(1 + ξ)*(1 - η)*(1 + ζ)*0.125
-			                 + y7*(1 + ξ)*(1 + η)*(1 + ζ)*0.125
-			                 + y8*(1 - ξ)*(1 + η)*(1 + ζ)*0.125)
+			+ y2*(1 + ξ)*(1 - η)*(1 - ζ)*0.125
+			+ y3*(1 + ξ)*(1 + η)*(1 - ζ)*0.125
+			+ y4*(1 - ξ)*(1 + η)*(1 - ζ)*0.125
+			+ y5*(1 - ξ)*(1 - η)*(1 + ζ)*0.125
+			+ y6*(1 + ξ)*(1 - η)*(1 + ζ)*0.125
+			+ y7*(1 + ξ)*(1 + η)*(1 + ζ)*0.125
+			+ y8*(1 - ξ)*(1 + η)*(1 + ζ)*0.125)
                         
 	                mesh.z_ho[ip] = (z1*(1 - ξ)*(1 - η)*(1 - ζ)*0.125
-			                 + z2*(1 + ξ)*(1 - η)*(1 - ζ)*0.125
-			                 + z3*(1 + ξ)*(1 + η)*(1 - ζ)*0.125
-			                 + z4*(1 - ξ)*(1 + η)*(1 - ζ)*0.125
-			                 + z5*(1 - ξ)*(1 - η)*(1 + ζ)*0.125
-			                 + z6*(1 + ξ)*(1 - η)*(1 + ζ)*0.125
-			                 + z7*(1 + ξ)*(1 + η)*(1 + ζ)*0.125
-			                 + z8*(1 - ξ)*(1 + η)*(1 + ζ)*0.125)
+			+ z2*(1 + ξ)*(1 - η)*(1 - ζ)*0.125
+			+ z3*(1 + ξ)*(1 + η)*(1 - ζ)*0.125
+			+ z4*(1 - ξ)*(1 + η)*(1 - ζ)*0.125
+			+ z5*(1 - ξ)*(1 - η)*(1 + ζ)*0.125
+			+ z6*(1 + ξ)*(1 - η)*(1 + ζ)*0.125
+			+ z7*(1 + ξ)*(1 + η)*(1 + ζ)*0.125
+			+ z8*(1 - ξ)*(1 + η)*(1 + ζ)*0.125)
 
                         #mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
                         conn_vol_poin[l,m,n,iel] = ip
@@ -2365,57 +2355,57 @@ function  add_high_order_nodes_volumes!(mesh::St_mesh, lgl, SD::NSD_3D)
             end 
         end
     end # do f 
-for iel =1:mesh.nelem
-    iconn =1
-    for n=2:ngl-1
-        starter=2
-        ender = ngl-1
-        iconn_level=1
-        while (iconn_level <= (ngl-2)^2)
-            m=starter
-            for l=starter:ender
-                ip = conn_vol_poin[l,m,n,iel] 
-                mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
-                iconn=iconn+1
-                iconn_level=iconn_level+1
-            end 
-            if (iconn_level > (ngl-2)^2) break end
-            l=ender
-            for m=starter+1:ender
-                ip = conn_vol_poin[l,m,n,iel]
-                mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
-                iconn=iconn+1
-                iconn_level=iconn_level+1
-            end 
-            if (iconn_level > (ngl-2)^2) break end
-            m=ender
-            for l=ender-1:-1:starter
-                ip = conn_vol_poin[l,m,n,iel]
-                mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
-                iconn=iconn+1
-                iconn_level=iconn_level+1
-            end 
-            if (iconn_level > (ngl-2)^2) break end
-            l=starter
-            for m=ender-1:starter+1
-                ip = conn_vol_poin[l,m,n,iel]
-                mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
-                iconn=iconn+1
-                iconn_level=iconn_level+1
+    for iel =1:mesh.nelem
+        iconn =1
+        for n=2:ngl-1
+            starter=2
+            ender = ngl-1
+            iconn_level=1
+            while (iconn_level <= (ngl-2)^2)
+                m=starter
+                for l=starter:ender
+                    ip = conn_vol_poin[l,m,n,iel] 
+                    mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
+                    iconn=iconn+1
+                    iconn_level=iconn_level+1
+                end 
+                if (iconn_level > (ngl-2)^2) break end
+                l=ender
+                for m=starter+1:ender
+                    ip = conn_vol_poin[l,m,n,iel]
+                    mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
+                    iconn=iconn+1
+                    iconn_level=iconn_level+1
+                end 
+                if (iconn_level > (ngl-2)^2) break end
+                m=ender
+                for l=ender-1:-1:starter
+                    ip = conn_vol_poin[l,m,n,iel]
+                    mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
+                    iconn=iconn+1
+                    iconn_level=iconn_level+1
+                end 
+                if (iconn_level > (ngl-2)^2) break end
+                l=starter
+                for m=ender-1:starter+1
+                    ip = conn_vol_poin[l,m,n,iel]
+                    mesh.conn[8 + el_edges_internal_nodes + el_faces_internal_nodes + iconn, iel] = ip
+                    iconn=iconn+1
+                    iconn_level=iconn_level+1
+                end
+                starter=starter+1
+                ender = ender-1
             end
-            starter=starter+1
-            ender = ender-1
         end
     end
-end
 
 
-show(stdout, "text/plain", mesh.conn')
-for iel = 1:mesh.nelem
-    show(stdout, "text/plain", mesh.connijk[:,:,:,iel])
-end
+    show(stdout, "text/plain", mesh.conn')
+    for iel = 1:mesh.nelem
+        show(stdout, "text/plain", mesh.connijk[:,:,:,iel])
+    end
 
-println(" # POPULATE GRID with SPECTRAL NODES ............................ VOLUMES DONE")
+    println(" # POPULATE GRID with SPECTRAL NODES ............................ VOLUMES DONE")
 
 end
 
@@ -2535,8 +2525,8 @@ function mod_mesh_mesh_driver(inputs::Dict)
                                             npz  = Int64(inputs[:npz]), 
                                             xmin = Float64(inputs[:xmin]), xmax = Float64(inputs[:xmax]),
                                             ymin = Float64(inputs[:ymin]), ymax = Float64(inputs[:ymax]),
-                                            zmin = Float64(inputs[:zmin]), zmax = Float64(inputs[:zmax]),
-                                            nop=Int64(inputs[:nop]))
+                zmin = Float64(inputs[:zmin]), zmax = Float64(inputs[:zmax]),
+                nop=Int64(inputs[:nop]))
             else
                 @error( " INPUT ERROR: nsd must be an integer in [1, 2, 3] ")
             end
@@ -2549,7 +2539,7 @@ function mod_mesh_mesh_driver(inputs::Dict)
             println(" # ... build DEFAULT 1D grid")
             println(" # ...... DEFINE NSD in your input dictionary if you want a different grid!")
             mesh = St_mesh{TInt,TFloat}(x = zeros(Int64(inputs[:npx])),
-                                        npx  = Int64(inputs[:npx]),
+            npx  = Int64(inputs[:npx]),
                                         xmin = Float64(inputs[:xmin]), xmax = Float64(inputs[:xmax]),
                                         nop=Int64(inputs[:nop]))
         end
