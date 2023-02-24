@@ -473,27 +473,10 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
             end
         end
     end
-
-    #=for iedge_bdy = 1:mesh.nedges_bdy
-        @printf(" bdy_edge %d ∈ elem %d and has points\n", iedge_bdy, bdy_edge_in_elem[iedge_bdy])
-        for igl = 1:mesh.ngl
-            @printf(" %d", poin_in_bdy_edge[iedge_bdy, igl])
-        end
-        @printf("\n\n")
-    end=#
+    #----------------------------------------------------------------------
+    # END Extract boundary edge nodes:
+    #----------------------------------------------------------------------
     
-
-    #=
-    for i=1:length(mesh.conn_unique_faces)
-    if isboundary_face[i] == 1
-    bdy_face[ibdy_face,1] = mesh.conn_unique_faces[i][1]
-    bdy_face[ibdy_face,2] = mesh.conn_unique_faces[i][2]
-    bdy_face[ibdy_face,3] = mesh.conn_unique_faces[i][3]
-    bdy_face[ibdy_face,4] = mesh.conn_unique_faces[i][4]
-    @info ibdy_face, bdy_face[ibdy_face,1], bdy_face[ibdy_face,2], bdy_face[ibdy_face,3], bdy_face[ibdy_face,4]
-    ibdy_face += 1
-    end 
-    end=#
 
     #compute_element_size_driver(mesh, SD, TFloat)
     #error("assasasa")
