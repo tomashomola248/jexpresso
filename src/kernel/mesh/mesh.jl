@@ -449,19 +449,19 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
     #----------------------------------------------------------------------
     isboundary_edge = compute_isboundary_face(topology, mesh.nsd-1)
     isboundary_face = compute_isboundary_face(topology, mesh.nsd-2)
-
-    #bdy_edge_in_elem = zeros(Int64, mesh.nedges_bdy, mesh.ngl)
-    #
+    #Bdy edges
     poin_in_bdy_edge = zeros(Int64, mesh.nedges_bdy, mesh.ngl)
     bdy_edge_in_elem = zeros(Int64, mesh.nedges_bdy)
-    #
-    #bdy_face = zeros(Int64, mesh.nfaces_bdy, mesh.ngl*mesh.ngl)
+    #Bdy faces
+    poin_in_bdy_face = zeros(Int64, mesh.nfaces_bdy, mesh.ngl*mesh.ngl)
+    bdy_face_in_elem = zeros(Int64, mesh.nfaces_bdy)
 
-    iedge_bdy = iface_bdy = 1
-    for i = 1:mesh.nedges #total nedges
-        if isboundary_edge[i] == 1
+    #Bdy edges
+    iedge_bdy = 1
+    for iedge = 1:mesh.nedges #total nedges
+        if isboundary_edge[iedge] == 1
             for igl = 1:mesh.ngl
-                poin_in_bdy_edge[iedge_bdy, igl] = mesh.conn_edge_poin[i,igl]
+                poin_in_bdy_edge[iedge_bdy, igl] = mesh.conn_edge_poin[iedge, igl]
             end
             iedge_bdy += 1
         end
@@ -473,6 +473,33 @@ function mod_mesh_read_gmsh!(mesh::St_mesh, inputs::Dict)
             end
         end
     end
+
+    #Bdy faces
+  #=  iface_bdy = 1
+    for iface = 1:mesh.nfaces #total nfaces
+        if isboundary_face[iface] == 1
+            for igl = 1:mesh.ngl*mesh.ngl
+                poin_in_bdy_face[iface_bdy, igl] = mesh.conn_face_poin[iface, igl]
+            end
+            iface_bdy += 1
+        end
+    end
+    for iel = 1:mesh.nelem
+        for iface_bdy = 1:mesh.nfaces_bdy
+            if issubset(poin_in_bdy_face[iface_bdy, :], mesh.connijk[:, :, iel])
+                bdy_face_in_elem[iface_bdy] = iel
+            end
+        end
+    end
+
+    for iface_bdy = 1:mesh.nfaces_bdy
+        @printf(" Bdy face %d ∈ element %d and has nodes\n", iface_bdy, bdy_face_in_elem[iface_bdy])
+        for igl = 1:mesh.ngl*mesh.ngl
+            @printf(" %d", poin_in_bdy_face[iface_bdy, igl])
+        end
+        @printf("\n")
+    end
+    =#
     #----------------------------------------------------------------------
     # END Extract boundary edge nodes:
     #----------------------------------------------------------------------
