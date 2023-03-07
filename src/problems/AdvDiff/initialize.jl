@@ -1,7 +1,7 @@
 include("../AbstractProblems.jl")
 include("../../kernel/globalStructs.jl")
 include("../../kernel/mesh/mesh.jl")
-include("../../io/plotting/jeplots.jl")
+#include("../../io/plotting/jeplots.jl")
 
 function initialize(SD::NSD_1D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT_DIR::String, TFloat)
 
@@ -107,8 +107,8 @@ function initialize(SD::NSD_2D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
     # avoid sorting the x and q which would be
     # becessary for a smooth curve plot.
     #------------------------------------------
-    title = string( "Tracer: initial condition")
-    jcontour(SD, mesh.x, mesh.y, q.qn[:,1], title, string(OUTPUT_DIR, "/INIT.png"))
+    #title = string( "Tracer: initial condition")
+    #jcontour(SD, mesh.x, mesh.y, q.qn[:,1], title, string(OUTPUT_DIR, "/INIT.png"))
     
     @info " Initialize fields for AdvDiff ........................ DONE"
     

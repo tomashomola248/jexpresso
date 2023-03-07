@@ -1,6 +1,6 @@
 include("../abstractTypes.jl")
 include("../infrastructure/element_matrices.jl")
-include("../../io/plotting/jeplots.jl")
+#include("../../io/plotting/jeplots.jl")
 
 mutable struct RK_Integrator{TFloat}
   a::Array{TFloat}
@@ -92,8 +92,8 @@ function time_loop!(TD,
             # avoid sorting the x and q which would be
             # becessary for a smooth curve plot.
             #------------------------------------------
-            title = @sprintf("Tracer: final solution at t=%6.4f", t)
-            jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, ".png"))
+            #title = @sprintf("Tracer: final solution at t=%6.4f", t)
+            #jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, ".png"))
             it_diagnostics = it_diagnostics + 1
         end
         t = t0 + Δt
@@ -132,9 +132,8 @@ function time_loop!(TD,
             # avoid sorting the x and q which would be
             # becessary for a smooth curve plot.
             #------------------------------------------
-            title = @sprintf( "Tracer: final solution at t=%6.4f", t)
-            jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, "N.pdf"))
-
+            #title = @sprintf( "Tracer: final solution at t=%6.4f", t)
+            #jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, "N.pdf"))
             it_diagnostics = it_diagnostics + 1
         end
         t = t0 + Δt
@@ -143,7 +142,7 @@ function time_loop!(TD,
     end
       
     #Plot final solution
-    title = title = @sprintf( "Tracer: final solution at t=%6.4f", inputs[:tend])
+    #title = title = @sprintf( "Tracer: final solution at t=%6.4f", inputs[:tend])
     #jcontour(mesh.x, mesh.y, qp.qn[:,3], title, string(OUTPUT_DIR, "/END.png"))
     
 end

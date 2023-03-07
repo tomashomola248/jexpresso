@@ -14,23 +14,18 @@ const TFloat = Float64
 # jexpresso modules
 #--------------------------------------------------------
 include("../AbstractProblems.jl")
-
 include("./rhs.jl")
 include("./initialize.jl")
-
 include("../../io/mod_inputs.jl")
-include("../../io/plotting/jeplots.jl")
 include("../../io/print_matrix.jl")
-
 include("../../kernel/abstractTypes.jl")
 include("../../kernel/globalStructs.jl")
 include("../../kernel/bases/basis_structs.jl")
 include("../../kernel/infrastructure/element_matrices.jl")
-include("../../kernel/infrastructure/Kopriva_functions.jl")
-include("../../kernel/infrastructure/2D_3D_structures.jl")
+#include("../../kernel/infrastructure/Kopriva_functions.jl")
+#include("../../kernel/infrastructure/2D_3D_structures.jl")
 include("../../kernel/mesh/metric_terms.jl")
 include("../../kernel/mesh/mesh.jl")
-include("../../kernel/solver/mod_solution.jl")
 include("../../kernel/timeIntegration/TimeIntegrators.jl")  
 include("../../kernel/boundaryconditions/BCs.jl")
 #--------------------------------------------------------
