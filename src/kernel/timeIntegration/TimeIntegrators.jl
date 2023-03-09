@@ -79,34 +79,8 @@ function time_loop!(TD,
     RHSnm1   = copy(RHSn)
     RHSnm2   = copy(RHSnm1)
     qp.qnm1 .= qp.qn
-    for it = 1:2
-        if (mod(it, it_interval) == 0 || it == Nt)
-            @printf "   Solution at t = %.6f sec\n" t
-            @printf "      min/max(q1) = %.6f %.6f\n" minimum(qp.qn[:,1]) maximum(qp.qn[:,1])
-            @printf "      min/max(q2) = %.6f %.6f\n" minimum(qp.qn[:,2]) maximum(qp.qn[:,2])
-            @printf "      min/max(q3) = %.6f %.6f\n" minimum(qp.qn[:,3]) maximum(qp.qn[:,3])
-
-            #------------------------------------------
-            # Plot initial condition:
-            # Notice that I scatter the points to
-            # avoid sorting the x and q which would be
-            # becessary for a smooth curve plot.
-            #------------------------------------------
-            #title = @sprintf("Tracer: final solution at t=%6.4f", t)
-            #jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, ".png"))
-            it_diagnostics = it_diagnostics + 1
-        end
-        t = t0 + Δt
-        t0 = t
-        
-        rk!(qp, RHSn, RHSnm1, RHSnm2; TD, SD, QT, PT,
-            mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time=t, T)
-        
-    end
-    #
-    # DBF2 from now on:
-    #    
-    for itbdf = 3:Nt
+    
+    for it = 1:Nt
 
         #OK don't touch
         qp.qnm2 .= qp.qnm1
@@ -117,25 +91,35 @@ function time_loop!(TD,
         #this needs to be here BEFORE the time stepper
         #ok don't touch above.
 
-        rk!(qp, RHSn, RHSnm1, RHSnm2; TD, SD, QT, PT,  mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time=t, T)
-        #bdf2!(qp, RHSn, RHSnm1, RHSnm2; TD, SD, QT, PT, mesh, metrics, basis, ω, M, Δt, neqns, inputs, BCT, time=t, T)
-                
-        if (mod(itbdf, it_interval) == 0 || itbdf == Nt)
+        if (mod(it, it_interval) == 0 || it == Nt)
             @printf "   Solution at t = %.6f sec\n" t
             for ieq = 1:neqns
                 @printf "      min/max(q[%d]) = %.6f %.6f\n" ieq minimum(qp.qn[:,ieq]) maximum(qp.qn[:,ieq])
             end
             
-            #------------------------------------------
-            # Plot initial condition:
-            # Notice that I scatter the points to
-            # avoid sorting the x and q which would be
-            # becessary for a smooth curve plot.
-            #------------------------------------------
             #title = @sprintf( "Tracer: final solution at t=%6.4f", t)
             #jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, "N.pdf"))
-            it_diagnostics = it_diagnostics + 1
+            #it_diagnostics = it_diagnostics + 1
         end
+        
+        rk!(qp, RHSn, RHSnm1, RHSnm2; TD, SD, QT, PT,  mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time=t, T)
+
+        #
+        # @JIM, ADD the solution array qp.qn[1:npoin, 1:neqns] here.
+        # If you need to write the coordinates, they are stored in
+        #
+        # mesh.x[1:npoin]
+        # mesh.y[1:npoin] (this is only allocated is mesh.nsd > 1)
+        #
+        # If you need the connectivity for any reason, then it is
+        # mesh.connijk[1:mesh.ngl,             1:mesh.nelem] if mesh.nsd == 1
+        # mesh.connijk[1:mesh.ngl, 1:mesh.ngl, 1:mesh.nelem] if mesh.nsd == 2
+        #
+        # The initial condition is created in "src/problems/PROBLEM_NAME/initialize.jl
+        #
+        # A runtime a new output directory is created in src/problems/PROBLEM_NAME. You can store your output files in it by using the string:
+        #     string(OUTPUT_DIR, "/it.", it_diagnostics, ".dat")
+        #
         t = t0 + Δt
         t0 = t
       
