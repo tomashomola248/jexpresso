@@ -1,6 +1,4 @@
 using Plots; plotlyjs()
-using LaTeXStrings
-using ColorSchemes
 
 include("../../kernel/mesh/mesh.jl")
 
@@ -74,4 +72,26 @@ function jcontour(SD::NSD_2D, x1, y1, z1, title::String, fout_name::String)
     
     PlotlyJS.savefig(PlotlyJS.plot(data), fout_name)
     
+end
+
+function plot_error(SD::NSD_1D, x, qn, qe, fout_name::String)
+    
+    p1 = Plots.plot(x, qe, label="analytic", markershape=:circle, markersize=6)
+    p1 = Plots.plot!(p1, x, qn, label="numerical", markershape=:diamond)
+    p1 = Plots.plot!(p1, title="qnumer vs qexact")
+
+    p2 = Plots.scatter(x, abs.(qn .- qe), label="error", markershape=:circle, markersize=6, markercolor="green")
+    p2 = Plots.scatter!(p2, title=" |qnumer - qexact|")
+
+    data = Plots.plot(p1, p2)
+
+    Plots.savefig(data, fout_name)
+end
+
+function plot_error(SD::NSD_2D, x, qn, qe, fout_name::String)
+    nothing
+end
+
+function plot_error(SD::NSD_3D, x, qn, qe, fout_name::String)
+    nothing
 end

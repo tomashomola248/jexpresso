@@ -1,12 +1,13 @@
 using DifferentialEquations
 using LinearAlgebra
-#using DiffEqBase
-#using OrdinaryDiffEq: SplitODEProblem, solve, IMEXEuler
-#import SciMLBase
+using DiffEqBase
+using OrdinaryDiffEq: SplitODEProblem, solve, IMEXEuler
+import SciMLBase
 
 include("../abstractTypes.jl")
 include("../infrastructure/element_matrices.jl")
 include("../../io/plotting/jeplots.jl")
+include("../../io/diagnostics.jl")
 
 mutable struct RK_Integrator{TFloat}
   a::Array{TFloat}
@@ -109,28 +110,32 @@ function time_loop!(TD,
     #
     # RK
     #
-    t = inputs[:tinit]
+    time = inputs[:tinit]
     for it = 1:Nt
         if (mod(it, it_interval) == 0 || it == Nt)
-            @printf "   Solution at t = %.6f sec\n" t
+            @printf "   Solution at t = %.6f sec\n" time
             for ieq = 1:length(qp.qn[1,:])
                 @printf "      min/max(q[%d]) = %.6f %.6f\n" ieq minimum(qp.qn[:,ieq]) maximum(qp.qn[:,ieq])
             end
+
+            mass_conservation(qp)
             
-            title = @sprintf "Tracer: final solution at t=%6.4f" t
+            title = @sprintf "Tracer: final solution at t=%6.4f" time
             jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, ".png"))
             it_diagnostics = it_diagnostics + 1
             
         end
             
-        rk!(qp, TD, SD, QT, PT, mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, t, T)
+        rk!(qp, TD, SD, QT, PT, mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time, T)
   
-        t += Δt
+        time += Δt
     end
     
     #Plot final solution
     title = @sprintf "Tracer: final solution at t=%6.4f" inputs[:tend]
     jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it", "end", ".png"))
+
+    plot_error(SD, mesh.x, qp.qn[:,1], qp.qe[:,1], string(OUTPUT_DIR, "/FINAL-error.png"))
     
 end
 

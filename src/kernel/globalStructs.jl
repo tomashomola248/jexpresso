@@ -18,6 +18,7 @@ Base.@kwdef mutable struct St_SolutionVars{TFloat}
     F    = Array{TFloat}(undef, 0, 0, 0, 0) #8  Fⁿ
     G    = Array{TFloat}(undef, 0, 0, 0, 0) #9  Gⁿ
     H    = Array{TFloat}(undef, 0, 0, 0, 0) #10 Hⁿ
+
 end
 
 """
@@ -26,18 +27,7 @@ end
 TBW
 """
 function allocate_q(nelem, npoin, ngl, neqs)
-#=    
-    q = St_SolutionVars{TFloat}(zeros(npoin, 3),               # qn+1
-                                zeros(npoin, 3),               # qn
-                                zeros(npoin, 3),               # qn-1
-                                zeros(npoin, 3),               # qn-2
-                                zeros(npoin, 3),               # qn-3
-                                zeros(npoin, 3),               # qe
-                                zeros(ngl, ngl, nelem, neqs),  # qelⁿ[ngl,ngl,ngl,nelem]
-                                zeros(ngl, ngl, nelem, neqs),  # Fⁿ
-                                zeros(ngl, ngl, nelem, neqs),  # Gⁿ
-                                zeros(ngl, ngl, nelem, neqs))  # Hⁿ
-=#
+    
     q = St_SolutionVars{TFloat}(zeros(1, 1),               # qn+1
                                 zeros(1, 1),               # qn
                                 zeros(1, 1),               # qn-1
@@ -53,19 +43,9 @@ function allocate_q(nelem, npoin, ngl, neqs)
 end
 
 function define_q(SD::NSD_1D, nelem, npoin, ngl, neqs)
-#=    
-    q = St_SolutionVars{TFloat}(zeros(npoin, 3),               # qn+1
-                                zeros(npoin, 3),               # qn
-                                zeros(npoin, 3),               # qn-1
-                                zeros(npoin, 3),               # qn-2
-                                zeros(npoin, 3),               # qn-3
-                                zeros(npoin, 3),               # qe
-                                zeros(ngl, ngl, nelem, neqs),  # qelⁿ[ngl,ngl,ngl,nelem]
-                                zeros(ngl, ngl, nelem, neqs),  # Fⁿ
-                                zeros(ngl, ngl, nelem, neqs),  # Gⁿ
-                                zeros(ngl, ngl, nelem, neqs))  # Hⁿ
-    =#
-    q = St_SolutionVars{TFloat}(qn = zeros(npoin, neqs),    # qn
+    
+    q = St_SolutionVars{TFloat}(qn = zeros(npoin, neqs), # qn
+                                qe = zeros(npoin, neqs), # qᵉ
                                 F  = zeros(ngl, nelem))  # Fⁿ
     
     return q
@@ -74,8 +54,9 @@ end
 function define_q(SD::NSD_2D, nelem, npoin, ngl, neqs)
     
     q = St_SolutionVars{TFloat}(qn = zeros(npoin, neqs), # qⁿ
+                                qe = zeros(npoin, neqs), # qᵉ
                                 F  = zeros(ngl, nelem),  # Fⁿ
-                                G  = zeros(ngl, nelem))  # Gⁿ
+                                G  = zeros(ngl, nelem))  # Gⁿ    
     
     return q
 end
@@ -83,7 +64,8 @@ end
 
 function define_q(SD::NSD_3D, nelem, npoin, ngl, neqs)
     
-    q = St_SolutionVars{TFloat}(qn = zeros(npoin, neqs), # qⁿ
+    q = St_SolutionVars{TFloat}(qn = zeros(npoin, neqs),       # qⁿ
+                                qe = zeros(npoin, neqs),       # qᵉ
                                 F  = zeros(ngl, nelem, neqs),  # Fⁿ
                                 G  = zeros(ngl, nelem, neqs),  # Gⁿ
                                 H  = zeros(ngl, nelem, neqs))  # Hⁿ

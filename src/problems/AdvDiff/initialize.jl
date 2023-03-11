@@ -1,5 +1,4 @@
 include("../AbstractProblems.jl")
-include("../../kernel/globalStructs.jl")
 include("../../kernel/mesh/mesh.jl")
 include("../../io/plotting/jeplots.jl")
 
@@ -23,6 +22,10 @@ function initialize(SD::NSD_1D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
                    
         end
     end
+    #Exact solution
+    q.qe = copy(q.qn)
+
+   # q.mass_init = sum(q.qe[:,1])
     
     #------------------------------------------
     # Plot initial condition:
@@ -49,7 +52,6 @@ function initialize(SD::NSD_2D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
     q    = define_q(SD, mesh.nelem, mesh.npoin, mesh.ngl, neqs)
     
     test_case = "kopriva.5.3.5"
-    #test_case = "giraldo.15.8"
     if (test_case == "kopriva.5.3.5")
         #Cone properties:
         ν = inputs[:νx] 
@@ -74,29 +76,15 @@ function initialize(SD::NSD_2D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
                 end
             end
         end
-    elseif (test_case == "giraldo.15.8")
-        σ = 32.0
-        (xc, yc) = (-0.5, 0.0)
-                
-        for iel_g = 1:mesh.nelem
-            for i=1:ngl
-                for j=1:ngl
 
-                    ip = mesh.connijk[i,j,iel_g]
-                    x  = mesh.x[ip]
-                    y  = mesh.y[ip]
-
-                    q.qn[ip,1] = exp(-σ*((x - xc)*(x - xc) + (y - yc)*(y - yc)))
-                    q.qe[ip,1] = q.qn[ip,1]             
-                    q.qu[ip,2] = +y #constant
-                    q.qu[ip,3] = -x #constant
-
-                    #q.qnel[i,j,iel_g,1] = q.qn[ip,1]
-                end
-            end
+        #qexact at t=tend
+        t = inputs[:tend]
+        σ = 1.0/(ν*(4.0t + 1.0))
+        for ip = 1:mesh.npoin
+            q.qe[ip] = 1.0/(4t + 1.0) * exp(-σ*((x[ip] - u*t - xc)^2 + (y[ip] - v*t - yc)^2))
         end
     end
-        
+    
     #------------------------------------------
     # Plot initial condition:
     # Notice that I scatter the points to
