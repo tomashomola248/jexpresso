@@ -1,13 +1,15 @@
+import Plots
 using DifferentialEquations
 using LinearAlgebra
 using DiffEqBase
 using OrdinaryDiffEq: SplitODEProblem, solve, IMEXEuler
 import SciMLBase
 
+
 include("../abstractTypes.jl")
 include("../infrastructure/element_matrices.jl")
 include("../../io/plotting/jeplots.jl")
-include("../../io/diagnostics.jl")
+#include("../../io/diagnostics.jl")
 
 mutable struct RK_Integrator{TFloat}
   a::Array{TFloat}
@@ -53,7 +55,7 @@ function buildRKIntegrator!(RKtype::RK5, TFloat)
 
 end
 
-function rhs!(RHS, q, params, time)
+function rhs!(du, u, params, t)
 
     T       = Float64
     TD      = params.TD
@@ -68,22 +70,29 @@ function rhs!(RHS, q, params, time)
     inputs  = params.inputs
     ω       = params.ω
     M       = params.M
-
+    
+    
     #
     # rhs[ngl,ngl,nelem]
     #
-    rhs_el      = build_rhs(SD, QT, PT, neqns, q.qn, basis.ψ, basis.dψ, ω, mesh, metrics, T)
-    rhs_diff_el = build_rhs_diff(SD, QT, PT, neqns, q.qn, basis.ψ, basis.dψ, ω, inputs[:νx], inputs[:νy], mesh, metrics, T)
+    rhs_el      = build_rhs(SD, QT, PT, neqns, u, basis.ψ, basis.dψ, ω, mesh, metrics, T)
+    rhs_diff_el = build_rhs_diff(SD, QT, PT, neqns, u, basis.ψ, basis.dψ, ω, inputs[:νx], inputs[:νy], mesh, metrics, T)
     
-    apply_boundary_conditions!(rhs_el, q.qn, mesh, inputs, SD, QT, metrics, basis.ψ, basis.dψ, ω,time, BCT, neqns)
+    apply_boundary_conditions!(rhs_el, u, mesh, inputs, SD, QT, metrics, basis.ψ, basis.dψ, ω, t, BCT, neqns)
     
-    RHS = DSSijk_rhs(SD, rhs_el + inputs[:δvisc]*rhs_diff_el, mesh.connijk, mesh.nelem, mesh.npoin, mesh.nop, T)
+    du = DSSijk_rhs(SD, rhs_el + inputs[:δvisc]*rhs_diff_el, mesh.connijk, mesh.nelem, mesh.npoin, mesh.nop, T)
     
-    divive_by_mass_matrix!(RHS, M, QT)
+    divive_by_mass_matrix!(du, M, QT)
     
-    apply_periodicity!(rhs_el, q.qn, mesh, inputs, SD, QT, metrics, basis.ψ, basis.dψ, ω, time, BCT, neqns)
+    apply_periodicity!(rhs_el, u, mesh, inputs, SD, QT, metrics, basis.ψ, basis.dψ, ω, t, BCT, neqns)
 
-    return RHS
+    @info t
+
+    #title = @sprintf "Tracer: final solution at t=%6.4f" t
+    #fname = string("./tmp/", t, ".png")
+    #jcontour(SD, mesh.x, u[:,1], u[:,1], title, fname)
+    
+    return du
 end
 
 
@@ -104,33 +113,49 @@ function time_loop!(TD,
                     OUTPUT_DIR::String,
                     T)
 
+    params = (;T, TD, SD, QT, PT, BCT, neqns, basis, mesh, metrics, inputs, ω, M)
+    
     it_interval    = inputs[:diagnostics_interval]
     it_diagnostics = 1
 
     #
     # RK
     #
-    time = inputs[:tinit]
-    for it = 1:Nt
-        if (mod(it, it_interval) == 0 || it == Nt)
-            @printf "   Solution at t = %.6f sec\n" time
-            for ieq = 1:length(qp.qn[1,:])
-                @printf "      min/max(q[%d]) = %.6f %.6f\n" ieq minimum(qp.qn[:,ieq]) maximum(qp.qn[:,ieq])
-            end
+    #time = inputs[:tinit]
+    tspan = (inputs[:tinit], 100*1.0e-4)
 
-            mass_conservation(qp)
-            
-            title = @sprintf "Tracer: final solution at t=%6.4f" time
-            jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, ".png"))
-            it_diagnostics = it_diagnostics + 1
-            
-        end
-            
-        rk!(qp, TD, SD, QT, PT, mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time, T)
-  
-        time += Δt
-    end
+    u0 = zeros(mesh.npoin)
+    u0[:] .= qp.qn[:,1]
+    prob = ODEProblem(rhs!, u0, tspan, params, dt=Δt)
+    #algo = Tsit5()
+    algo = SSPRK53()
+    sol = solve(prob,
+                algo,
+                Δt,
+                saveat = range(inputs[:tinit], inputs[:tend], length=20),
+                progress = true,
+                progress_message = (du, u, p, t) -> time,
+                );
+
+    qend = copy(sol.u[end])
+    p1 = Plots.scatter(mesh.x, qend, label="q_end", markershape=:circle, markersize=6)
+    p1 = Plots.scatter!(p1, title=" q_end")
+    display(Plots.plot(p1))
+
     
+    #display(plot(sol,linewidth=2, title =" Testing ODE Solver", xaxis = "Time", yaxis = "Height", label = ["\\theta"]))
+    #=    
+    prob = SplitODEProblem(
+        SciMLBase.DiffEqArrayOperator(
+            D,
+        ),
+        rhs!,
+        qp.qn[:,1],
+        tspan,
+        params
+    )=#
+    
+
     #Plot final solution
     title = @sprintf "Tracer: final solution at t=%6.4f" inputs[:tend]
     jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it", "end", ".png"))
@@ -177,5 +202,56 @@ function rk!(q::St_SolutionVars,
 
         end #stages
     end
+    
+end
+
+function time_loop_or!(TD,
+                    SD,
+                    QT,
+                    PT,
+                    mesh::St_mesh,
+                    metrics::St_metrics,
+                    basis, ω,
+                    qp,
+                    M, L, 
+                    Nt, Δt,
+                    neqns, 
+                    inputs::Dict,
+                    BCT,
+                    OUTPUT_DIR::String,
+                    T)
+
+    it_interval    = inputs[:diagnostics_interval]
+    it_diagnostics = 1
+
+    #
+    # RK
+    #
+    time = inputs[:tinit]
+    for it = 1:Nt
+        if (mod(it, it_interval) == 0 || it == Nt)
+            @printf "   Solution at t = %.6f sec\n" time
+            for ieq = 1:length(qp.qn[1,:])
+                @printf "      min/max(q[%d]) = %.6f %.6f\n" ieq minimum(qp.qn[:,ieq]) maximum(qp.qn[:,ieq])
+            end
+
+            #mass_conservation(qp)
+            
+            title = @sprintf "Tracer: final solution at t=%6.4f" time
+            jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, ".png"))
+            it_diagnostics = it_diagnostics + 1
+            
+        end
+            
+        rk!(qp, TD, SD, QT, PT, mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time, T)
+  
+        time += Δt
+    end
+    
+    #Plot final solution
+    title = @sprintf "Tracer: final solution at t=%6.4f" inputs[:tend]
+    jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it", "end", ".png"))
+
+    plot_error(SD, mesh.x, qp.qn[:,1], qp.qe[:,1], string(OUTPUT_DIR, "/FINAL-error.png"))
     
 end
