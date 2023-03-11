@@ -60,7 +60,8 @@ function initialize(SD::NSD_2D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
         end
         σ = 1.0/ν
         (xc, yc) = (-0.5, -0.5)
-        
+        u = 0.8
+        v = 0.8
         for iel_g = 1:mesh.nelem
             for i=1:ngl
                 for j=1:ngl
@@ -70,8 +71,6 @@ function initialize(SD::NSD_2D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
                     y  = mesh.y[ip]
 
                     q.qn[ip,1] = exp(-σ*((x - xc)*(x - xc) + (y - yc)*(y - yc)))
-                    u          = 0.8 #constant
-                    v          = 0.8 #constant
 
                 end
             end
@@ -81,7 +80,7 @@ function initialize(SD::NSD_2D, ET::AdvDiff, mesh::St_mesh, inputs::Dict, OUTPUT
         t = inputs[:tend]
         σ = 1.0/(ν*(4.0t + 1.0))
         for ip = 1:mesh.npoin
-            q.qe[ip] = 1.0/(4t + 1.0) * exp(-σ*((x[ip] - u*t - xc)^2 + (y[ip] - v*t - yc)^2))
+            q.qe[ip] = 1.0/(4t + 1.0) * exp(-σ*((mesh.x[ip] - u*t - xc)^2 + (mesh.y[ip] - v*t - yc)^2))
         end
     end
     
