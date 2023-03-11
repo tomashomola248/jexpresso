@@ -4,13 +4,13 @@ function user_inputs()
         # User define your inputs below: the order doesn't matter
         #---------------------------------------------------------------------------
         :tend                => 1.5,
-        :Δt                  => 1e-5,
-        :diagnostics_interval=> 500, #these are steps, not seconds
+        :Δt                  => 1e-4,
+        :diagnostics_interval=> 100, #these are steps, not seconds
         #---------------------------------------------------------------------------
         #Integration and quadrature properties
         #---------------------------------------------------------------------------
         :interpolation_nodes => "lgl", # Choice: "lgl", "cg", "cgl"
-        :nop                 => 6,     # Polynomial order
+        :nop                 => 4,     # Polynomial order
         :lexact_integration  => false,
         #---------------------------------------------------------------------------
         # Physical parameters/constants:
@@ -30,7 +30,7 @@ function user_inputs()
         #---------------------------------------------------------------------------
         :xmin          =>  -1.0,
         :xmax          =>   1.0,
-        :nelx          =>   40,
+        :nelx          =>   10,
         #---------------------------------------------------------------------------
         # Boundary conditions:
         #---------------------------------------------------------------------------
