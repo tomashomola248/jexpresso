@@ -97,9 +97,17 @@ function time_loop!(TD,
                 @printf "      min/max(q[%d]) = %.6f %.6f\n" ieq minimum(qp.qn[:,ieq]) maximum(qp.qn[:,ieq])
             end
             
+	     #Write out data 	 
+    	     open(string(OUTPUT_DIR, "/it.", it_diagnostics, "N.dat"), "w") do f
+             for ip = 1:mesh.npoin 
+             	  @printf(f, " %d %.6f %.6f %.6f \n", ip, mesh.x[ip],mesh.y[ip],qp.qn[ip,1])
+              end
+             end #f
+	    
+
             #title = @sprintf( "Tracer: final solution at t=%6.4f", t)
             #jcontour(SD, mesh.x, mesh.y, qp.qn[:,1], title, string(OUTPUT_DIR, "/it.", it_diagnostics, "N.pdf"))
-            #it_diagnostics = it_diagnostics + 1
+            it_diagnostics = it_diagnostics + 1
         end
         
         rk!(qp, RHSn, RHSnm1, RHSnm2; TD, SD, QT, PT,  mesh, metrics, basis, ω, M, L, Δt, neqns, inputs, BCT, time=t, T)
@@ -120,11 +128,25 @@ function time_loop!(TD,
         # A runtime a new output directory is created in src/problems/PROBLEM_NAME. You can store your output files in it by using the string:
         #     string(OUTPUT_DIR, "/it.", it_diagnostics, ".dat")
         #
+	 #
+    
+
+
+
+
         t = t0 + Δt
         t0 = t
       
     end
       
+        #Write out data at final timestep	 
+    	open(string(OUTPUT_DIR, "/final.dat"), "w") do f
+        for ip = 1:mesh.npoin 
+             @printf(f, " %d %.6f %.6f %.6f \n", ip, mesh.x[ip],mesh.y[ip],qp.qn[ip,1])
+          end
+        end #f
+     
+
     #Plot final solution
     #title = title = @sprintf( "Tracer: final solution at t=%6.4f", inputs[:tend])
     #jcontour(mesh.x, mesh.y, qp.qn[:,3], title, string(OUTPUT_DIR, "/END.png"))
