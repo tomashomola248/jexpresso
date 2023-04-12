@@ -2,7 +2,7 @@
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "935da938b6c8a35a23dc7863409aa7a7e6db47ed"
+project_hash = "811058e86ca38b9f541b3991aa7c6167ef40b4e7"
 
 [[deps.ATK_jll]]
 deps = ["Artifacts", "Glib_jll", "JLLWrappers", "Libdl", "Pkg"]
@@ -1808,9 +1808,9 @@ version = "5.15.3+2"
 
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
-git-tree-sha1 = "97aa253e65b784fd13e83774cadc95b38011d734"
+git-tree-sha1 = "6ec7ac8412e83d57e313393220879ede1740f9ee"
 uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
-version = "2.6.0"
+version = "2.8.2"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
